@@ -1,0 +1,93 @@
+adminUser: admin
+adminPassword: admin
+
+labels:
+  app: grafana
+  version: 6.59.4
+
+podLabels:
+  app: grafana
+  version: 6.59.4
+
+service:
+  labels:
+    app: grafana
+    version: 6.59.4
+
+ingress:
+  enabled: false
+  hosts:
+    - grafana.anyflow.net
+  ingressClassName: nginx
+  path: /
+  pathType: Prefix
+  tls:
+    - secretName: default-tls
+      hosts:
+        - grafana.anyflow.net
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-server.cluster.svc.cluster.local
+        access: proxy
+        isDefault: true
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: default
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+dashboards:
+  default:
+    kubernetes-views-global-dashboard:
+      gnetId: 15757
+      revision: 31
+      datasource: Prometheus
+    kubernetes-views-namespaces-dashboard:
+      gnetId: 15758
+      revision: 27
+      datasource: Prometheus
+    kubernetes-views-nodes-dashboard:
+      gnetId: 15759
+      revision: 19
+      datasource: Prometheus
+    kubernetes-views-pods-dashboard:
+      gnetId: 15760
+      revision: 22
+      datasource: Prometheus
+    istio-control-plane-dashboard:
+      gnetId: 7645
+      revision: 178
+      datasource: Prometheus
+    istio-mesh-dashboard:
+      gnetId: 7639
+      revision: 178
+      datasource: Prometheus
+    istio-performance-dashboard:
+      gnetId: 12153
+      revision: 178
+      datasource: Prometheus
+    istio-service-dashboard:
+      gnetId: 7636
+      revision: 178
+      datasource: Prometheus
+    istio-wasm-extension-dashboard:
+      gnetId: 13277
+      revision: 135
+      datasource: Prometheus
+    istio-workload-dashboard:
+      gnetId: 7630
+      revision: 178
+      datasource: Prometheus

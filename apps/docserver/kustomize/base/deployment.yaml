@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docserver
+  namespace: cluster
+spec:
+  selector:
+    matchLabels:
+      app: docserver
+      version: latest
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: docserver
+        version: latest
+    spec:
+      containers:
+        - image: docker-registry.anyflow.net/docserver:latest
+          imagePullPolicy: Always
+          name: docserver
+          ports:
+            - containerPort: 80
+          resources: {}

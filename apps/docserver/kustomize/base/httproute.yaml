@@ -1,0 +1,90 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: docserver
+  namespace: cluster
+spec:
+  parentRefs:
+    - name: default-gateway
+      namespace: cluster
+  hostnames:
+    - api.anyflow.net
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /__openapi
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /contents/apispec/openapi/prod
+            statusCode: 302
+    - matches:
+        - path:
+            type: Exact #Implementation-specific, PathPrefix, Exact
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /contents/apispec/media/swaggerui/index.html
+            statusCode: 302
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /apispec
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /contents/apispec/media/swaggerui
+            statusCode: 302
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /swaggerui
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /contents/apispec/media/swaggerui
+            statusCode: 302
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /redoc
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /contents/apispec/media/redoc
+            statusCode: 302
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /changelog
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /contents/changelog
+            statusCode: 302
+    - matches:
+        - path:
+            type: PathPrefix #Implementation-specific, PathPrefix, Exact
+            value: /
+      backendRefs:
+        - name: docserver
+          port: 80
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301

@@ -1,0 +1,29 @@
+agent:
+  enabled: true
+
+persistence:
+  enabled: true
+  existingClaim: jenkins # use manually made pvc
+
+controller:
+  podLabels:
+    app: jenkins
+
+  additionalPlugins:
+    - ansicolor:1.0.4
+    - docker-plugin:1.5
+    # - blueocean:1.27.9
+    # - github:1.37.3.1
+
+  ingress:
+    enabled: false
+    # annotations:
+    #   kubernetes.io/ingress.class: nginx
+    #   kubernetes.io/tls-acme: "true"
+    # ingressClassName: nginx
+    # path: /
+    # hostName: jenkins.anyflow.net
+    # tls:
+    #   - secretName: default-tls
+    #     hosts:
+    #       - jenkins.anyflow.net

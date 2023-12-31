@@ -1,0 +1,24 @@
+pilot:
+  traceSampling: 100 # sampling percentage for tracing.
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2048Mi
+
+global:
+  istioNamespace: istio-system
+
+  proxy:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 64Mi
+
+meshConfig:
+  defaultConfig:
+    tracing:
+      zipkin:
+        address: jaeger-collector.istio-system.svc:9411 # jaeger collector address

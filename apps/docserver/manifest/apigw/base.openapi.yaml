@@ -1,0 +1,144 @@
+x-tcn: # mandatory. not null.
+  app: apigw # mandatory. not null.
+  contacts: # mandatory. not null.
+    - name: 박현정 # mandatory. not null.
+      email: "hyunjeong.park@lge.com" # mandatory. not null.
+  openapiEndpoint: # mandatory. not null.
+    urlPrefix: "" # mandatory. not null.
+  krakendEndpoint: # mandatory. not null.
+    # output_encoding: json # The default is no-op
+    backend:
+      host: localhost:8080
+      # urlPatternPrefix: "/some_prefix" # The default is "". The value appended in front of every url_pattern
+      # encoding: json # The default is no-op
+    extra_config:
+      auth/api-keys:
+        roles:
+          - apigw
+  global: # mandatory. not null.
+    krakendIgnorePaths: # mandatory. not null.
+      - /__echo/{dummy}
+    openapiEndpoint: # mandatory. not null.
+      security:
+        - apiKeyAuth: []
+      # parameters:
+      #   - name: X-Trace-Id
+      #     in: header
+      #     schema:
+      #       type: string
+      #       example: "f8f78c93-aec7-4d26-a3ab-cb263ddd08b1"
+    openapiComponents: # mandatory. not null.
+      securitySchemes:
+        apiKeyAuth:
+          type: apiKey
+          name: X-Api-Key
+          in: header
+    krakendEndpoint: # mandatory. not null.
+      input_headers:
+        - X-Api-Key
+        - Content-Type
+      extra_config:
+        auth/api-keys:
+          roles:
+            - admin
+
+x-krakend:
+  $schema: https://www.krakend.io/schema/krakend.json
+  name: My Cluster API Gateway
+  version: 3
+  port: 8080
+  timeout: 60s
+  debug_endpoint: true
+  echo_endpoint: true
+  plugin:
+    pattern: .so
+    folder: /opt/krakend/plugins/
+  extra_config:
+    plugin/http-server:
+      name:
+        - static-filesystem
+        - virtualhost
+      static-filesystem:
+        path: ./contents
+        prefix: /__contents
+      virtualhost:
+        hosts: []
+    router:
+      auto_options: true
+      forwarded_by_client_ip: true
+      remote_ip_headers:
+        - X-Forwarded-For
+      trusted_proxies:
+        - 0.0.0.0/0
+      logger_skip_paths:
+        - /__health
+    telemetry/logging:
+      level: DEBUG
+      prefix: ""
+      stdout: true
+      syslog: false
+      format: default
+    telemetry/opencensus:
+      sample_rate: 100
+      reporting_period: 0
+      exporters:
+        jaeger:
+          endpoint: http://jaeger-collector.istio-system:14268/api/traces
+          service_name: krakend.cluster
+          buffer_max_count: 1000
+  endpoints:
+    - endpoint: /__openapi/*
+      output_encoding: no-op
+      method: GET
+      backend:
+        - method: GET
+          url_pattern: /__contents/apispec/openapi/
+          encoding: no-op
+          host:
+            - localhost:8080
+    - endpoint: /__swaggerui/*
+      output_encoding: no-op
+      method: GET
+      backend:
+        - method: GET
+          url_pattern: /__contents/apispec/media/swaggerui/
+          encoding: no-op
+          host:
+            - localhost:8080
+    - endpoint: /__redoc/*
+      output_encoding: no-op
+      method: GET
+      backend:
+        - method: GET
+          url_pattern: /__contents/apispec/media/redoc/
+          encoding: no-op
+          host:
+            - localhost:8080
+    - endpoint: /__apispec/*
+      output_encoding: no-op
+      method: GET
+      backend:
+        - method: GET
+          url_pattern: /__contents/apispec/media/swaggerui/
+          encoding: no-op
+          host:
+            - localhost:8080
+    - endpoint: /__changelog/*
+      output_encoding: no-op
+      method: GET
+      backend:
+        - method: GET
+          url_pattern: /__contents/changelog/
+          encoding: no-op
+          host:
+            - localhost:8080
+
+openapi: 3.0.3
+info:
+  title: My Cluster API Specification
+  description: |
+    ***The following is a description of backends exposed by My Cluster API Gateway :***
+  version: "0.2"
+servers:
+  - url: http://localhost:8080
+paths: {}

@@ -1,0 +1,224 @@
+POST /_security/user/anyflow
+{
+  "password": "mycluster",
+  "roles": [
+    "superuser"
+  ],
+  "full_name": "anyflow",
+  "email": "anyflow",
+  "metadata": {},
+  "enabled": true
+}
+POST kbn:api/data_views/data_view
+{
+  "data_view": {
+    "title": "dockebi-*",
+    "name": "dockebi",
+    "timeFieldName": "timestamp"
+  }
+}
+POST kbn:api/data_views/data_view
+{
+  "data_view": {
+    "title": "krakend-*",
+    "name": "krakend",
+    "timeFieldName": "timestamp"
+  }
+}
+PUT _ilm/policy/30days_retention_policy
+{
+  "policy": {
+    "phases": {
+      "hot": {
+        "actions": {}
+      },
+      "delete": {
+        "min_age": "30d",
+        "actions": {
+          "delete": {}
+        }
+      }
+    }
+  }
+}
+PUT /_index_template/mycluster_template
+{
+  "index_patterns": [
+    "krakend-*",
+    "dockebi-*"
+  ],
+  "template": {
+    "settings": {
+      "number_of_replicas": 0,
+      "lifecycle.name": "30days_retention_policy"
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "level": {
+          "type": "text"
+        },
+        "timestamp": {
+          "type": "date"
+        },
+        "version": {
+          "type": "keyword"
+        },
+        "metadata": {
+          "properties": {
+            "app": {
+              "type": "keyword"
+            },
+            "operationId": {
+              "type": "keyword"
+            },
+            "orderInSpan": {
+              "type": "long"
+            },
+            "spanId": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            }
+          }
+        },
+        "message": {
+          "properties": {
+            "str": {
+              "type": "text"
+            },
+            "obj": {
+              "properties": {
+                "body": {
+                  "properties": {
+                    "str": {
+                      "type": "text"
+                    }
+                  }
+                },
+                "errorCode": {
+                  "type": "keyword"
+                },
+                "exception": {
+                  "type": "text"
+                },
+                "inbound": {
+                  "type": "boolean"
+                },
+                "method": {
+                  "type": "keyword"
+                },
+                "outbound": {
+                  "type": "boolean"
+                },
+                "params": {
+                  "properties": {
+                    "name": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "path": {
+                  "type": "keyword"
+                },
+                "queries": {
+                  "properties": {
+                    "name": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "responseTimeMs": {
+                  "type": "float"
+                },
+                "statusCode": {
+                  "type": "long"
+                },
+                "headers": {
+                  "properties": {
+                    "Accept": {
+                      "type": "keyword"
+                    },
+                    "Accept-Encoding": {
+                      "type": "keyword"
+                    },
+                    "Accept-Language": {
+                      "type": "keyword"
+                    },
+                    "Cookie": {
+                      "type": "keyword"
+                    },
+                    "Host": {
+                      "type": "keyword"
+                    },
+                    "Referer": {
+                      "type": "keyword"
+                    },
+                    "Sec-Ch-Ua": {
+                      "type": "keyword"
+                    },
+                    "Sec-Ch-Ua-Mobile": {
+                      "type": "keyword"
+                    },
+                    "Sec-Ch-Ua-Platform": {
+                      "type": "keyword"
+                    },
+                    "Sec-Fetch-Dest": {
+                      "type": "keyword"
+                    },
+                    "Sec-Fetch-Mode": {
+                      "type": "keyword"
+                    },
+                    "Sec-Fetch-Site": {
+                      "type": "keyword"
+                    },
+                    "User-Agent": {
+                      "type": "keyword"
+                    },
+                    "X-Api-Key": {
+                      "type": "keyword"
+                    },
+                    "X-Dockebi-Region": {
+                      "type": "keyword"
+                    },
+                    "X-Forwarded-For": {
+                      "type": "keyword"
+                    },
+                    "X-Forwarded-Host": {
+                      "type": "keyword"
+                    },
+                    "X-Forwarded-Port": {
+                      "type": "keyword"
+                    },
+                    "X-Forwarded-Proto": {
+                      "type": "keyword"
+                    },
+                    "X-Forwarded-Scheme": {
+                      "type": "keyword"
+                    },
+                    "X-Forwarded-Via": {
+                      "type": "keyword"
+                    },
+                    "X-Real-Ip": {
+                      "type": "keyword"
+                    },
+                    "X-Request-Id": {
+                      "type": "keyword"
+                    },
+                    "X-Scheme": {
+                      "type": "keyword"
+                    },
+                    "X-Trace-Id": {
+                      "type": "keyword"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

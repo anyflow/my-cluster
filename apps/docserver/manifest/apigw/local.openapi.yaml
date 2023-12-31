@@ -1,0 +1,30 @@
+# x-krakend
+x-krakend:
+  # extra_config:
+  #   security/cors:
+  #     allow_headers:
+  #       - "*"
+  #     allow_methods:
+  #       - GET
+  #       - HEAD
+  #       - POST
+  #       - PUT
+  #       - PATCH
+  #       - DELETE
+  #       - OPTIONS
+  #     allow_origins:
+  #       - https://localhost
+  #       - http://localhost
+  endpoints:
+    - endpoint: /__openapi/*
+      backend:
+        - url_pattern: /__contents/apispec/openapi/local
+    -
+    -
+    - endpoint: /__apispec/*
+      backend:
+        - url_pattern: /__contents/apispec/media/redoc
+
+# OpenAPI
+servers:
+  - url: http://localhost:8080

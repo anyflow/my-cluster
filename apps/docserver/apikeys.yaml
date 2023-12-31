@@ -1,0 +1,8 @@
+version: 1.0
+metadata:
+  type: apikeySpec
+apikeys:
+  admin:
+    key: f8f78c93-aec7-4d26-a3ab-cb263ddd08b1
+  dockebi:
+    key: 70edc9fe-1692-41e4-abcb-58a2274c4b83

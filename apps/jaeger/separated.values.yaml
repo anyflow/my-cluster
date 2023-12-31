@@ -1,0 +1,48 @@
+allInOne:
+  enabled: false
+
+provisionDataStore:
+  cassandra: false
+  elasticsearch: false
+  kafka: false
+
+storage:
+  type: elasticsearch
+  elasticsearch:
+    scheme: http
+    host: elasticsearch-master.cluster.svc.cluster.local
+    port: 9200
+    anonymous: false
+    user: jaeger
+    usePassword: true
+    password: RyNBRIaXQOjyz4Ti
+    indexPrefix: jaeger
+
+collector:
+  enabled: true
+  samplingConfig: |-
+    {
+      "default_strategy": {
+        "type": "probabilistic",
+        "param": 1
+      }
+    }
+
+query:
+  enabled: true
+  ingress:
+    enabled: true
+    hosts:
+      - jaeger.anyflow.net
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      kubernetes.io/tls-acme: "true"
+    labels:
+      app: jaeger
+    tls:
+      - secretName: default-tls
+        hosts:
+          - jaeger.anyflow.net
+
+agent:
+  enabled: true

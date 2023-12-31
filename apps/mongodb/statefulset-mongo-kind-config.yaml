@@ -1,0 +1,37 @@
+apiVersion: kind.x-k8s.io/v1alpha4
+kind: Cluster
+
+nodes:
+- role: control-plane # configuration for control-plane node
+  kubeadmConfigPatches: # for using ingress
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80  #for ingress based foo, bar service
+    hostPort: 80
+    protocol: TCP
+  - containerPort: 31593 # for LoadBalancer based foo, bar service
+    hostPort: 31593
+    protocol: TCP
+
+- role: worker # configuration for worker1 node
+  extraMounts:
+    - hostPath: ./hostroot_in_node
+      containerPath: /hostroot
+    - hostPath: ./pvc
+      containerPath: /var/local-path-provisioner
+- role: worker # configuration for worker2 node
+  extraMounts:
+    - hostPath: ./hostroot_in_node
+      containerPath: /hostroot
+    - hostPath: ./pvc
+      containerPath: /var/local-path-provisioner
+- role: worker # configuration for worker3 node
+  extraMounts:
+    - hostPath: ./hostroot_in_node
+      containerPath: /hostroot
+    - hostPath: ./pvc
+      containerPath: /var/local-path-provisioner

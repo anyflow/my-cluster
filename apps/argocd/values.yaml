@@ -1,0 +1,70 @@
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+applicationSet:
+  enabled: false
+
+redis:
+  enabled: false
+
+configs:
+  params:
+    server.insecure: true # Prevent recursive https requesting when using httproute instead of ingress
+
+  service:
+    type: ClusterIP
+    servicePortHttp: 80
+
+  ingress:
+    enabled: false
+    # hosts:
+    #   - argocd.anyflow.net
+    # annotations:
+    #   nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    #   nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    # path: /
+    # pathType: Prefix
+    # ingressClassName: nginx
+    # tls:
+    #   - secretName: default-tls
+    #     hosts:
+    #       - argocd.anyflow.net
+
+server:
+  resources: # to prevent too much resource comsumption
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  extension:
+    resources:
+      limits:
+        cpu: 50m
+        memory: 128Mi
+      requests:
+        cpu: 10m
+        memory: 64Mi
+
+controller:
+  resources: # to prevent too much resource comsumption
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+repoServer:
+  resources: # to prevent too much resource comsumption
+    limits:
+      cpu: 50m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi

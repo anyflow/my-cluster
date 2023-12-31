@@ -1,0 +1,44 @@
+apiVersion: kind.x-k8s.io/v1alpha4
+kind: Cluster
+name: my-cluster
+networking:
+  apiServerAddress: "0.0.0.0"
+  apiServerPort: 6443
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+containerdConfigPatches:
+  - |- # setting for docker-registry
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5001"]
+      endpoint = ["http://kind-registry:5000"]
+
+nodes:
+  - role: control-plane
+  #   kubeadmConfigPatches: # for using ingress
+  #     - |
+  #       kind: InitConfiguration
+  #       nodeRegistration:
+  #         kubeletExtraArgs:
+  #           node-labels: "ingress-ready=true"
+
+  #   extraPortMappings:
+  #     - containerPort: 80 # ingress
+  #       hostPort: 80
+  #       protocol: TCP
+  #     - containerPort: 443 # ingress https
+  #       hostPort: 443
+  #       protocol: TCP
+
+  - role: worker
+    extraMounts:
+      - hostPath: ./nodes/worker0/var/local-path-provisioner
+        containerPath: /var/local-path-provisioner # dynamic provisioning에 의한 storage
+
+  - role: worker
+    extraMounts:
+      - hostPath: ./nodes/worker1/var/local-path-provisioner
+        containerPath: /var/local-path-provisioner
+
+  - role: worker
+    extraMounts:
+      - hostPath: ./nodes/worker2/var/local-path-provisioner
+        containerPath: /var/local-path-provisioner

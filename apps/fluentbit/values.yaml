@@ -1,0 +1,206 @@
+daemonset:
+    enabled: true
+
+config:
+    flush: 1
+    logLevel: info
+    service: |
+        [SERVICE]
+            Flush           {{ .Values.config.flush }}
+            Daemon          Off
+            LogLevel        {{ .Values.config.logLevel }}
+            Config_Watch    On
+            HTTP_Server     On
+            HTTP_Listen     0.0.0.0
+            HTTP_Port       {{ .Values.containerPorts.http }}
+            Parsers_File    /opt/bitnami/fluent-bit/conf/custom_parsers.conf
+    inputs: |
+        [INPUT]
+            Name            tail
+            Path            /var/log/pods/cluster_krakend*/*/*.log
+            Tag             krakend
+
+        [INPUT]
+            Name            tail
+            Path            /var/log/pods/cluster_dockebi*/*/*.log
+            Tag             dockebi
+
+    filters: |
+        [FILTER]
+            Name            parser
+            Match           krakend
+            Key_Name        log
+            Parser          krakend_access
+
+        [FILTER]
+            Name            lua
+            Match           krakend
+            Script          /opt/bitnami/fluent-bit/conf/krakend.access.lua
+            Call            transform
+
+        [FILTER]
+            Name            parser
+            Match           *
+            Key_Name        log
+            Parser          general
+
+        [FILTER]
+            Name            lua
+            Match           *
+            Script          /opt/bitnami/fluent-bit/conf/general.lua
+            Call            transform
+
+        [FILTER]
+            name            parser
+            match           *
+            Key_Name        message
+            Parser          json
+
+    outputs: |
+        [OUTPUT]
+            Name            stdout
+            Match           *
+            Format          json_lines
+            json_date_key   timestamp
+
+        [OUTPUT]
+            Name            es
+            Match           krakend
+            Host            elasticsearch-master.cluster
+            Port            9200
+            Index           krakend
+            HTTP_User       anyflow
+            HTTP_Passwd     mycluster
+            tls             On
+            tls.verify      Off
+            Suppress_Type_Name On
+            Logstash_Format On
+            Logstash_Prefix krakend
+            Time_Key        timestamp
+            Replace_Dots    On
+            Current_Time_Index On
+            Trace_Output    On
+            Trace_Error     On
+
+        [OUTPUT]
+            Name            es
+            Match           dockebi
+            Host            elasticsearch-master.cluster
+            Port            9200
+            Index           dockebi
+            HTTP_User       anyflow
+            HTTP_Passwd     mycluster
+            tls             On
+            tls.verify      Off
+            Suppress_Type_Name On
+            Logstash_Format On
+            Logstash_Prefix dockebi
+            Time_Key        timestamp
+            Replace_Dots    On
+            Current_Time_Index On
+            Trace_Output    On
+            Trace_Error     On
+
+    customParsers: |
+        [PARSER]
+            Name            krakend_access
+            Format          regex
+            Regex           ^\s*(?<timestamp>[^ ]+) (?:stdout|stderr) (?:\w+) +(?:\d{4}\/\d{2}\/\d{2}) - (?:\d{2}:\d{2}:\d{2}\.\d+) \[(?:\w+)\] \| *(?<statusCode>\d{3}) \| *(?<duration>[\d\.]+)(?<durationUnit>ms|µs|s) \| *(?<clientIp>\d+\.\d+\.\d+\.\d+) \| (?<method>\w+)\s+(?<path>.+)$
+            Time_Key        timestamp
+
+        [PARSER]
+            Name            general
+            Format          regex
+            Regex           ^(?<timestamp>[^ ]+) [^ ]+ [^ ] (?<message>.*)?
+            Time_Key        timestamp
+
+        [PARSER]
+            Name            json
+            Format          json
+            Time_Key        timestamp
+
+    extraFiles:
+        krakend.access.lua: |
+            function transform(tag, timestamp, record)
+                if record["statusCode"] == nil then -- Leave if the record is not access log.
+                    return 0, timestamp, record
+                end
+
+                timestamp = record["timestamp"]
+
+                local responseTimeMs = tonumber(record["duration"])
+                if record["durationUnit"] ~= nil and record["duration"] ~= nil then
+                    if record["durationUnit"] == "s" then
+                        responseTimeMs = responseTimeMs * 1000
+                    elseif record["durationUnit"] == "µs" then
+                        responseTimeMs = responseTimeMs / 1000
+                    end
+                end
+
+                return 1, nil, {
+                    ["version"] = "1.0",
+                    ["timestamp"] = timestamp,
+                    ["level"] = "INFO",
+                    ["metadata"] = {
+                        ["app"] = "apigw",
+                        ["type"] = "httpResponse",
+                        ["operationId"] = record["path"] .. "|" .. record["method"],
+                        ["clientIp"] = record["clientIp"]
+                    },
+                    ["message"] = {
+                        ["obj"] = {
+                            ["statusCode"] = tonumber(record["statusCode"]),
+                            ["responseTimeMs"] = responseTimeMs,
+                            ["path"] = record["path"],
+                            ["method"] = record["method"]
+                        }
+                    }
+                }
+            end
+
+        general.lua: |
+            function transform(tag, timestamp, record)
+                if record["version"] ~= nil then -- Processed successfully in krakend.access.lua
+                    return 0, timestamp, record
+                end
+
+                if json_formatted(record["message"]) then
+                    if string.find(record["message"], "timestamp") then
+                        return 0, timestamp, record
+                    elseif string.gsub(record["message"], " ", "") == "{}" then
+                        return 1, nil, {
+                            ["timestamp"] = record["timestamp"]
+                        }
+                    else
+                        return 1, nil, {
+                            ["message"] = string.gsub(record["message"], "{", '{"timestamp":"' .. record["timestamp"] .. '",', 1)
+                        }
+                    end
+                end
+
+                return 1, nil, {
+                    ["version"] = "1.0",
+                    ["timestamp"] = record["timestamp"],
+                    ["level"] = "INFO",
+                    ["metadata"] = {
+                        ["type"] = "general",
+                    },
+                    ["message"] = {
+                        ["str"] = record["message"]
+                    }
+                }
+            end
+
+            function json_formatted(message)
+                return message ~= nil
+                    and string.sub(message, 1, 1) == "{"
+                    and string.sub(message, -1) == "}"
+            end
+
+extraVolumeMounts:
+    - name: config
+      mountPath: /opt/bitnami/fluent-bit/conf/krakend.access.lua
+      subPath: krakend.access.lua
+    - name: config
+      mountPath: /opt/bitnami/fluent-bit/conf/general.lua
+      subPath: general.lua

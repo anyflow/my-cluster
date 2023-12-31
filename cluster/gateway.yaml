@@ -1,0 +1,31 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: default-gateway
+  namespace: cluster
+spec:
+  gatewayClassName: istio
+  addresses:
+    - type: IPAddress
+      value: 172.18.255.200
+  listeners:
+    - name: http-anyflow-net
+      hostname: "*.anyflow.net"
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-anyflow-net
+      hostname: "*.anyflow.net"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: default-tls
+            namespace: cluster
+      allowedRoutes:
+        namespaces:
+          from: All

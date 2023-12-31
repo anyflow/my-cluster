@@ -1,0 +1,10 @@
+deleteTopicEnable: true
+
+externalAccess:
+  enabled: true
+  service:
+    type: NodePort
+    nodePorts:
+    - 30004
+  autoDiscovery:
+    enabled: false

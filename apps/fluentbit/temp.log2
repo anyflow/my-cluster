@@ -1,0 +1,5 @@
+2023-01-30T12:11:48.164653072Z stdout F {"version": "1.0", "timestamp": "2023-05-07T00:21:31.682312Z", "level": "INFO", "metadata": {"spanId": "e571b217-12cf-4bc5-bb63-ad438589e873", "api": "/v1/backend|GET", "type": "general"}, "message": {"str": "A log emitted - get_backend"}}
+2023-02-30T22:16:19.490898429Z stdout F 2023/05/06 - 23:47:39.979 [AccessLog] | 200 | 46.586ms |      10.244.0.2 | POST     /internal/v1/backend
+2023-03-30T22:16:19.490898429Z stdout F 2023/04/30 - 22:16:19 DEBUG [ENDPOINT: /internal/some_path_post][JWTSigner] Signer disabled
+2023-04-30T22:16:19.490898429Z stdout F {"key":"value"}
+2023-04-30T22:16:19.490898429Z stdout F {}

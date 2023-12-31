@@ -1,0 +1,26 @@
+servers:
+  - url: https://api.anyflow.net
+x-krakend:
+  # extra_config:
+  #   security/cors:
+  #     allow_headers:
+  #       - "*"
+  #     allow_methods:
+  #       - GET
+  #       - HEAD
+  #       - POST
+  #       - PUT
+  #       - PATCH
+  #       - DELETE
+  #       - OPTIONS
+  #     allow_origins:
+  #       - https://api.anyflow.net
+  endpoints:
+    - endpoint: /__openapi/*
+      backend:
+        - url_pattern: /__contents/apispec/openapi/prod
+    -
+    -
+    - endpoint: /__apispec/*
+      backend:
+        - url_pattern: /__contents/apispec/media/swaggerui

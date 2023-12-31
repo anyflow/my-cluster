@@ -1,0 +1,18 @@
+version: 1.0
+metadata:
+  type: apikeySpec
+apikeySpecs:
+  admin:
+    description: administrator key
+    roles:
+      - admin
+    contacts:
+      - name: anyflow@gmail.com
+        email: Hyunjeong Park
+  dockebi:
+    description: dockebi service key
+    roles:
+      - dockebi
+    contacts:
+      - name: anyflow@gmail.com
+        email: Hyunjeong Park

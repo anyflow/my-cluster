@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: nettool
+  name: nettool
+spec:
+  containers:
+  - image: wbitt/network-multitool
+    name: nettool
