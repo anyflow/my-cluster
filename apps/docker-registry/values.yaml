@@ -1,6 +1,3 @@
-# https://artifacthub.io/packages/helm/twuni/docker-registry
-# harbor를 안쓰고 docker-registry를 쓴 이유. harbor가 너무 무겁기 때문에
-
 ingress:
   enabled: false
   className: nginx
