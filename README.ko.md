@@ -14,7 +14,7 @@
 - **`docker`**: Kubernetes 기반이므로 container runtime이 당연스럽게 필요하다. `podman` 역시 아래의 `kind`가 지원하므로 가능할 듯 한데 테스트되지는 않았다.
 - **`kind`**: Container 기반으로 단일 host에서의 Kubernetes를 지원하는 runtime. [kind 공식 가이드](https://kind.sigs.k8s.io/docs/user/quick-start/)에 OS별 설치 가이드가 잘 나와 있다.
 - **`kubectl`**: Kubernetes 기본 명령 모듈. 이 역시 [Kuberenetes 공식 가이드](https://kubernetes.io/docs/tasks/tools/)의 `kubectl` 항목에 OS별 설치 가이드가 잘 나와 있다.
-- **wildcard 인증서**: MyCluster의 기본 Gateway인 `default-gateway`가 TLS 기반의 app 노출을 위해 사용한다. pem 형식으로 아래와 같이 위치시킨다.
+- **wildcard 인증서**: MyCluster의 기본 Gateway인 `default-gateway`가 TLS 기반의 app 노출을 위해 사용한다. app 별 도메인 연결법은 [1. `.env` 설정](#1-env-설정) 섹션에서 설명한다. pem 형식으로 아래와 같이 위치시킨다.
   - **fullchain 인증서**: `/cert/fullchain.pem`
   - **개인키**: `/cert/privkey.pem`
 
