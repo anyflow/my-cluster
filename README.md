@@ -14,7 +14,7 @@ Operating on a MacBook Pro from 2011 (w/ 16G Memory) under Ubuntu Linux (Refer t
 - **`docker`**: Being based on Kubernetes, a container runtime is naturally required. `podman` might also be feasible as it is supported by the below-mentioned `kind`, though it hasn't been tested.
 - **`kind`**: A runtime that supports Kubernetes on a single host based on containers. Installation guides for various OS are well documented in the [official kind guide](https://kind.sigs.k8s.io/docs/user/quick-start/).
 - **`kubectl`**: The basic command module for Kubernetes. This also has installation guides for various OS in the `kubectl` section of the [official Kubernetes guide](https://kubernetes.io/docs/tasks/tools/).
-- **Wildcard Certificate**: Used by `default-gateway`, the primary Gateway of MyCluster, for exposing apps over TLS. The files should be placed in the PEM format as follows:
+- **Wildcard Certificate**: Used by `default-gateway`, the primary Gateway of MyCluster, for exposing apps over TLS. The method for linking domains for each app is explained in the [1. Setting up `.env`](#1-setting-up-env) section. The files should be placed in the PEM format as follows:
   - **Fullchain Certificate**: `/cert/fullchain.pem`
   - **Private Key**: `/cert/privkey.pem`
 
@@ -72,8 +72,7 @@ root
 │  ├── ...
 ├── nodes             # Kubernetes worker node files (ignored in git)
 │  ├── worker0        # worker node 0
-│  ├── worker1        # worker node 1
-│  └── worker2        # worker node 2
+│  ├── ...
 ├── .env              # Environment Variables used in the Makefile (git ignored)
 ├── kind-config.yaml  # kind config
 ├── Makefile          # Makefile rules
@@ -99,7 +98,10 @@ Considering it operates locally, using three worker nodes is unnecessary. Howeve
 ## Supported App List
 Below is a list of supported (✅) or planned to be supported (🚧) apps. For more details, refer to the `README.md` in the respective app directory.
 
-- 🚧 `docker-registry`
+- **✅ `docker-registry`**
+  - Detailed Description: [`apps/docker-registry/README.md`](./apps/docker-registry/README.md)
+  - Create Command: `make docker_registry-c`
+  - Delete Command: `make docker_registry-d`
 - 🚧 `jaeger`
 - 🚧 `prmetheus`
 - 🚧 `grafana`
@@ -108,6 +110,5 @@ Below is a list of supported (✅) or planned to be supported (🚧) apps. For m
 - 🚧 `kibana`
 - 🚧 `argocd`
 - 🚧 `jenkins`
-- 🚧 `wbitt/network-multitool`
 - 🚧 `kafka`
 - 🚧 `kafkaui`

@@ -1,45 +1,6 @@
-# https://artifacthub.io/packages/helm/twuni/docker-registry
-# harbor를 안쓰고 docker-registry를 쓴 이유. harbor가 너무 무겁기 때문에
-
-ingress:
-  enabled: false
-  className: nginx
-  path: /
-  hosts:
-    - docker-registry.anyflow.net
-  tls:
-    - hosts:
-        - docker-registry.anyflow.net
-      secretName: default-tls
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "2000M"
+image:
+  tag: 2.8.3
 
 persistence:
-  accessMode: "ReadWriteOnce"
   enabled: true
-  size: 10Gi
-# configData:
-#   version: 0.1
-#   log:
-#     fields:
-#       service: registry
-#   storage:
-#     mediatypes:
-#       application/vnd.docker.distribution.manifest.v2+json:
-#         mediatype.maxlimit: 2G
-#     cache:
-#       blobdescriptor: inmemory
-#   http:
-#     addr: :5000
-#     headers:
-#       X-Content-Type-Options: [nosniff]
-#     debug:
-#       addr: :5001
-#       prometheus:
-#         enabled: false
-#         path: /metrics
-#   health:
-#     storagedriver:
-#       enabled: true
-#       interval: 10s
-#       threshold: 3
+  existingClaim: docker-registry

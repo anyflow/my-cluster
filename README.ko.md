@@ -1,4 +1,4 @@
-# My Cluster
+# My Cluster (DRAFT)
 단일 host에서 Kubernetes와 여기서 운용할 여러 app을 **'빠르게'** 설치/삭제하기 위한 프로젝트로서, 이들에 대한 사용법 확보 및 테스트가 주된 목적이다.
 
 ## 목표
@@ -14,7 +14,7 @@
 - **`docker`**: Kubernetes 기반이므로 container runtime이 당연스럽게 필요하다. `podman` 역시 아래의 `kind`가 지원하므로 가능할 듯 한데 테스트되지는 않았다.
 - **`kind`**: Container 기반으로 단일 host에서의 Kubernetes를 지원하는 runtime. [kind 공식 가이드](https://kind.sigs.k8s.io/docs/user/quick-start/)에 OS별 설치 가이드가 잘 나와 있다.
 - **`kubectl`**: Kubernetes 기본 명령 모듈. 이 역시 [Kuberenetes 공식 가이드](https://kubernetes.io/docs/tasks/tools/)의 `kubectl` 항목에 OS별 설치 가이드가 잘 나와 있다.
-- **wildcard 인증서**: MyCluster의 기본 Gateway인 `default-gateway`가 TLS 기반의 app 노출을 위해 사용한다. pem 형식으로 아래와 같이 위치시킨다.
+- **wildcard 인증서**: MyCluster의 기본 Gateway인 `default-gateway`가 TLS 기반의 app 노출을 위해 사용한다. app 별 도메인 연결법은 [1. `.env` 설정](#1-env-설정) 섹션에서 설명한다. pem 형식으로 아래와 같이 위치시킨다.
   - **fullchain 인증서**: `/cert/fullchain.pem`
   - **개인키**: `/cert/privkey.pem`
 
@@ -59,7 +59,7 @@ $ make helm_repo-c
 ...
 # Install istio
 $ make istio-c
-...
+..
 # Configure cluster level services. e.g. namspace, metallb, manual storageclass, gateway (, ingress)
 $ make config-c
 ```
@@ -73,8 +73,7 @@ root
 │  ├── ...
 ├── nodes             # Kubernetes worker node files (ignored in git)
 │  ├── worker0        # worker node 0
-│  ├── worker1        # worker node 1
-│  └── worker2        # worker node 2
+│  ├── ...
 ├── .env              # Environment Variables used in the Makefile (git ignored)
 ├── kind-config.yaml  # kind config
 ├── Makefile          # Makefile rules
@@ -86,7 +85,7 @@ root
 ## 설계 상 결정 사항
 
 ### `kind` 사용
-Minikube가 아닌 `[kind](https://kind.sigs.k8s.io/)`를 사용하는데, 처음 본 프로젝트 생성 당시 Minikube가 multi node를 지원하지 않았을 뿐 아니라 Kubernetes node를 container로 emulating하기에 **가볍고**, Kuberenetes 자체 개발을 위해 사용되었기 때문이다. 참고로, local 환경에서 Kuberenetes를 운용하기 위한 [Kuberenetes 공식 문서](https://kubernetes.io/docs/tasks/tools/) 상 첫 번째 옵션은 Minikube가 아닌 `kind`이다.
+Minikube가 아닌 [`kind`](https://kind.sigs.k8s.io/)를 사용하는데, 처음 본 프로젝트 생성 당시 Minikube가 multi node를 지원하지 않았을 뿐 아니라 Kubernetes node를 container로 emulating하기에 **가볍고**, Kuberenetes 자체 개발을 위해 사용되었기 때문이다. 참고로, local 환경에서 Kuberenetes를 운용하기 위한 [Kuberenetes 공식 문서](https://kubernetes.io/docs/tasks/tools/) 상 첫 번째 옵션은 Minikube가 아닌 `kind`이다.
 
 ### `cluster`, `istio-system` 의 두 개 namespace 만 사용
 이외의 namespace를 사용하지 않는 이유없이 편의성 때문이다. `istio-system`는 `istio` 및 eco family 설치 시 이외의 namespace를 사용할 경우 많은 시행 착오가 요구되기에 별도로 빠졌다.
@@ -100,7 +99,11 @@ local에서 동작함을 고려했을 때 Worker node를 3개나 운용하는 �
 ## 지원 app 목록
 아래는 지원(✅) 또는 지원 예정(🚧)인 app 목록으로 세부 사항은 해당 app directory의 `README.md`를 참조한다.
 
-- 🚧 `docker-registry`
+- **✅ `docker-registry`**
+  - 상세 설명: [`apps/docker-registry/README.ko.md`](./apps/docker-registry/README.md)
+  - 생성 명령: `make docker_registry-c`
+  - 삭제 명령: `make docker_registry-d`
+- 🚧 `jenkins`
 - 🚧 `jaeger`
 - 🚧 `prmetheus`
 - 🚧 `grafana`
@@ -108,7 +111,5 @@ local에서 동작함을 고려했을 때 Worker node를 3개나 운용하는 �
 - 🚧 `fluentbit`
 - 🚧 `kibana`
 - 🚧 `argocd`
-- 🚧 `jenkins`
-- 🚧 `wbitt/network-multitool`
 - 🚧 `kafka`
 - 🚧 `kafkaui`
