@@ -16,7 +16,7 @@
 - However, for the above purposes, `harbor` is a kind of over-engineering. It's unnecessarily complicated and heavy compared to Docker Registry.
 
 ## About Using Manual Provisioning for Persistent Volume
-### Related manifests:
+### Related manifests
 - [`/cluster/storageclass-manual.yaml`](../../cluster/storageclass-manual.yaml): Manual storage class manifest
 - [`pv.yaml`](./pv.yaml): Persistent Volume
 - [`pvc.yaml`](./pvc.yaml): Persistent Volume Claim

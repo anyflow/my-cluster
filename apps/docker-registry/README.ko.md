@@ -13,19 +13,8 @@
 - Helm repo description: https://artifacthub.io/packages/helm/phntom/docker-registry
 
 ## Why Docker Registry not Harbor?
-- 일반적으로 많이 사용하는 container registry 앱은 [`harbor`](https://goharbor.io/)인 듯.
-- 하지만 `harbor`는 상기 목적 상 일종의 over-engineering. Docker Registry에 비해 불필요하게 사용법이 복잡하고 무거움.
+- 일반적으로 많이 사용하는 container registry 앱은 [Harbor](https://goharbor.io/)인 듯.
+- 그러나 Harbor는 상기 목적 상 일종의 over-engineering으로, Docker Registry에 비해 불필요하게 사용법이 복잡하고 무거움.
 
-## Persistent Volume의 Manual Provisioning 사용에 관하여
-### 관련 manifest:
-- [`/cluster/storageclass-manual.yaml`](../../cluster/storageclass-manual.yaml): manual storageclass manifest
-- [`pv.yaml`](./pv.yaml): Persistent Volume
-- [`pvc.yaml`](./pvc.yaml): Persistent Volume Claim
-
-### 목적
-app이 삭제되더라도 데이터는 삭제되지 않도록 하기 위함
-
-### 설명
-`kind`의 기본 Storage Class인 `standard`는 [local-path-provisioner](https://github.com/rancher/local-path-provisioner)를 사용하는데, 이는 dynamic provisioning을 사용하기에 수작업으로 특정 PV와 PVC를 binding할 수가 없고(`pvc`에서 `selector` 사용 불가능), PV의 기본 `persistentVolumeReclaimPolicy`가 `Retain`이 아닌 `Delete`이기에 PVC가 삭제될 때 binding된 PV 및 data가 삭제된다.
-
-따라서, app이 삭제되더라도 data를 유지하고 재사용하기 위해서는 직접 PV, PVC를 처리해야 하며 결국 manual provisioning을 해야 한다. [관련 manifest](#관련-manifest)는 이를 위한 설정이다.
+## Manual volume provisioning에 관하여
+Docker Registry는 manual volume provisioning을 사용한다. [pv.yaml](./pv.yaml), [pvc.yaml](./pvc.yaml)은 이를 위한 manifest로, [value.yaml]()에서 해당 pvc를 참조하고 있다. 이에 대한 자세한 사항은 [Manual volume provisioning](../../cluster/manual-volume-provisioning.md)를 참조한다.

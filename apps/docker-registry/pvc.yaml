@@ -4,12 +4,10 @@ metadata:
   name: docker-registry
   namespace: cluster
 spec:
-  selector:
-    matchLabels:
-      app: docker-registry
+  storageClassName: ""
+  volumeName: docker-registry
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
-  storageClassName: manual

@@ -3,7 +3,7 @@ agent:
 
 persistence:
   enabled: true
-  existingClaim: jenkins # use manually made pvc
+  existingClaim: jenkins # use manual volume provisioning
 
 controller:
   podLabels:

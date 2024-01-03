@@ -4,12 +4,10 @@ metadata:
   name: jenkins
   namespace: cluster
 spec:
-  selector:
-    matchLabels:
-      app: jenkins
+  storageClassName: ""
+  volumeName: jenkins
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 4Gi
-  storageClassName: manual
