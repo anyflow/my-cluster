@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: docker-registry
+  labels:
+    app: docker-registry # To enable the selection of a specific Persistent Volume (PV) through a selector in a Persistent Volume Claim (PVC)
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 10Gi
+  hostPath:
+    path: /var/local-path-provisioner/docker-registry
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - my-cluster-worker
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  volumeMode: Filesystem

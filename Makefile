@@ -25,7 +25,7 @@ helm_repo-c:
 	helm repo add argo https://argoproj.github.io/argo-helm
 	helm repo add bitnami https://charts.bitnami.com/bitnami
 	helm repo add elastic https://helm.elastic.co
-	helm repo add twuni https://helm.twun.io
+	helm repo add phntom https://phntom.kix.co.il/charts/
 	helm repo update
 
 
@@ -72,8 +72,16 @@ port_forward:
 	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 443 -j MASQUERADE
 
 
-docker_registry-c:
-	helm upgrade -i docker-registry twuni/docker-registry -n cluster -f ./apps/docker-registry/values.yaml
+__create_docker_registry_dir:
+	DOCKER_REGISTRY_DIR="./nodes/worker0/var/local-path-provisioner/docker-registry"; \
+	test -d $$DOCKER_REGISTRY_DIR || sudo mkdir $$DOCKER_REGISTRY_DIR && \
+	sudo chown -R 1000:1000 $$DOCKER_REGISTRY_DIR && \
+	sudo chmod -R 700 $$DOCKER_REGISTRY_DIR
+
+docker_registry-c: __create_docker_registry_dir
+	kubectl apply -f ./apps/docker-registry/pv.yaml
+	kubectl apply -f ./apps/docker-registry/pvc.yaml
+	helm install docker-registry phntom/docker-registry  -n cluster -f ./apps/docker-registry/values.yaml
 	@sed 's/docker-registry.anyflow.net/${DOMAIN_DOCKER_REGISTRY}/' ./apps/docker-registry/httproute.yaml | kubectl apply -f -
 docker_registry-d:
 	helm uninstall docker-registry -n cluster
@@ -120,7 +128,6 @@ argocd-d:
 	kubectl delete -f ./apps/argocd/httproute.yaml
 
 
-
 __create_jenkins_dir:
 	JENKINS_DIR="./nodes/worker0/var/local-path-provisioner/jenkins"; \
 	test -d $$JENKINS_DIR || sudo mkdir $$JENKINS_DIR && \
@@ -159,7 +166,7 @@ nettool-c:
 nettool-d:
 	kubectl delete -f ./apps/nettool/pod.yaml
 nettool-r: nettool-d nettool-c
-exec_nettool:
+nettool-e:
 	kubectl exec -it nettool -- sh
 
 

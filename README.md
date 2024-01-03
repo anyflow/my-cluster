@@ -99,7 +99,10 @@ Considering it operates locally, using three worker nodes is unnecessary. Howeve
 ## Supported App List
 Below is a list of supported (✅) or planned to be supported (🚧) apps. For more details, refer to the `README.md` in the respective app directory.
 
-- 🚧 `docker-registry`
+- **✅ `docker-registry`**
+  - Detailed Description: [`apps/docker-registry/README.md`](./apps/docker-registry/README.md)
+  - Create Command: `make docker_registry-c`
+  - Delete Command: `make docker_registry-d`
 - 🚧 `jaeger`
 - 🚧 `prmetheus`
 - 🚧 `grafana`

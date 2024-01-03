@@ -59,7 +59,7 @@ $ make helm_repo-c
 ...
 # Install istio
 $ make istio-c
-...
+..
 # Configure cluster level services. e.g. namspace, metallb, manual storageclass, gateway (, ingress)
 $ make config-c
 ```
@@ -100,7 +100,11 @@ local에서 동작함을 고려했을 때 Worker node를 3개나 운용하는 �
 ## 지원 app 목록
 아래는 지원(✅) 또는 지원 예정(🚧)인 app 목록으로 세부 사항은 해당 app directory의 `README.md`를 참조한다.
 
-- 🚧 `docker-registry`
+- **✅ `docker-registry`**
+  - 상세 설명: [`apps/docker-registry/README.ko.md`](./apps/docker-registry/README.md)
+  - 생성 명령: `make docker_registry-c`
+  - 삭제 명령: `make docker_registry-d`
+- 🚧 `jenkins`
 - 🚧 `jaeger`
 - 🚧 `prmetheus`
 - 🚧 `grafana`
@@ -108,7 +112,6 @@ local에서 동작함을 고려했을 때 Worker node를 3개나 운용하는 �
 - 🚧 `fluentbit`
 - 🚧 `kibana`
 - 🚧 `argocd`
-- 🚧 `jenkins`
 - 🚧 `wbitt/network-multitool`
 - 🚧 `kafka`
 - 🚧 `kafkaui`
