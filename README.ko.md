@@ -38,7 +38,7 @@ DOMAIN_DOCKER_REGISTRY=docker-registry.anyflow.net
 ...
 ```
 
-### 2. Cluster 생성 및 cluster level configuration 설정
+### 2. Cluster 생성 및 주요 cluster level app, configuration 설치
 Kubernetes 및 주요 cluster level의 설치/설정으로 구체적 내용 및 절차는 다음과 같다. 이외 각 app에 대해서는 위 사용법을 참조하여 별도로 필요에 따라 설치한다.
 
 ```bash
@@ -48,21 +48,18 @@ $ git clone https://github.com/anyflow/my-cluster.git
 # Change current working directory
 $ cd my-cluster
 ...
-# Create Kubernetes cluster
-$ make cluster-c
+# Create Kubernetes cluster, configurate cluster level app, settings.
+$ make initialize
 ...
-# Install Load Balancer (used by Kubernetes API)
-$ make metallb-c
-...
-# Add helm repositories for apps
-$ make helm_repo-c
-...
-# Install istio
-$ make istio-c
-..
-# Configure cluster level services. e.g. namspace, metallb, manual storageclass, gateway (, ingress)
-$ make config-c
 ```
+
+참고로 아래는 `initialize` rule 내부에서 호출하는 rule 절차이다.
+
+1. **`cluster-c`**: Kubernetes cluster 생성
+2. **`metallb-c`**: Load Balancer 설치(metallb. Kubernetes API가 사용)
+3. **`helm_repo-c`**: app용 helm repository 설치
+4. **`istio-c`**: istio 설치
+5. **`config-c`**: cluster level configuration 설정 e.g. namspace, metallb, gateway (, ingress)
 
 ## 파일/디렉토리 설명
 ```sh
@@ -88,7 +85,7 @@ root
 Minikube가 아닌 [`kind`](https://kind.sigs.k8s.io/)를 사용하는데, 처음 본 프로젝트 생성 당시 Minikube가 multi node를 지원하지 않았을 뿐 아니라 Kubernetes node를 container로 emulating하기에 **가볍고**, Kuberenetes 자체 개발을 위해 사용되었기 때문이다. 참고로, local 환경에서 Kuberenetes를 운용하기 위한 [Kuberenetes 공식 문서](https://kubernetes.io/docs/tasks/tools/) 상 첫 번째 옵션은 Minikube가 아닌 `kind`이다.
 
 ### `cluster`, `istio-system` 의 두 개 namespace 만 사용
-이외의 namespace를 사용하지 않는 이유없이 편의성 때문이다. `istio-system`는 `istio` 및 eco family 설치 시 이외의 namespace를 사용할 경우 많은 시행 착오가 요구되기에 별도로 빠졌다.
+이외의 namespace를 사용하지 않는 별다른 이유없이 편의성 때문이다. `istio-system`는 `istio` 및 eco family 설치 시 이외의 namespace를 사용할 경우 많은 시행 착오가 요구되기에 별도로 빠졌다.
 
 ### (`ingress` 대신) `Kubernetes Gateway API` 사용
 `Kuberenetes Gateway API`는 `ingress`를 대체하는 새로운 Kubernetes API로서, Kubernetes Service를 외부에 노출하기 위해 default로 사용한다. 본 프로젝트에는 `ingress`에 대한 설정도 포함되어 있지만 상당 부분 comment out되어 있지만, 대부분 turn off되어 있다.

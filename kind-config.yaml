@@ -27,14 +27,14 @@ nodes:
   - role: worker
     extraMounts:
       - hostPath: ./nodes/worker0/var/local-path-provisioner
-        containerPath: /var/local-path-provisioner # dynamic provisioning에 의한 storage
+        containerPath: /var/local-path-provisioner # storage default path including dynamic, manual provisioning
 
   - role: worker
     extraMounts:
       - hostPath: ./nodes/worker1/var/local-path-provisioner
-        containerPath: /var/local-path-provisioner
+        containerPath: /var/local-path-provisioner # storage default path including dynamic, manual provisioning
 
   - role: worker
     extraMounts:
       - hostPath: ./nodes/worker2/var/local-path-provisioner
-        containerPath: /var/local-path-provisioner
+        containerPath: /var/local-path-provisioner # storage default path including dynamic, manual provisioning

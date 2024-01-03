@@ -1,5 +1,5 @@
 
-# Docker Registry
+# App: Docker Registry
 
 ## Requirements
 - Docker Hub 등 외부 registry에 대한 의존 없이도 image를 MyCluster에서 사용 가능하도록
@@ -17,4 +17,4 @@
 - 그러나 Harbor는 상기 목적 상 일종의 over-engineering으로, Docker Registry에 비해 불필요하게 사용법이 복잡하고 무거움.
 
 ## Manual volume provisioning에 관하여
-Docker Registry는 manual volume provisioning을 사용한다. [pv.yaml](./pv.yaml), [pvc.yaml](./pvc.yaml)은 이를 위한 manifest로, [value.yaml]()에서 해당 pvc를 참조하고 있다. 이에 대한 자세한 사항은 [Manual volume provisioning](../../cluster/manual-volume-provisioning.md)를 참조한다.
+Docker Registry app은 manual volume provisioning을 사용한다. [pv.yaml](./pv.yaml), [pvc.yaml](./pvc.yaml)은 이를 위한 manifest로, [value.yaml]()에서 해당 pvc를 참조한다. [Manual volume provisioning](../../cluster/manual-volume-provisioning.md)는 이에 대한 상세 설명이다.

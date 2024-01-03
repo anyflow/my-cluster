@@ -37,7 +37,7 @@ DOMAIN_DOCKER_REGISTRY=docker-registry.anyflow.net
 ...
 ```
 
-### 2. Create a cluster and set cluster-level configuration
+### 2. Create a cluster and set cluster-level app, configuration
 The specific content and procedures for installing/configuring Kubernetes and cluster levels are as follows. For each app, refer to the above usage instructions and install separately as needed.
 
 ```bash
@@ -47,21 +47,18 @@ $ git clone https://github.com/anyflow/my-cluster.git
 # Change current working directory
 $ cd my-cluster
 ...
-# Create Kubernetes cluster
-$ make cluster-c
+# Create Kubernetes cluster, configurate cluster level app, settings
+$ make initialize
 ...
-# Install Load Balancer (used by Kubernetes API)
-$ make metallb-c
-...
-# Add helm repositories for apps
-$ make helm_repo-c
-...
-# Install istio
-$ make istio-c
-...
-# Configure cluster level services. e.g. namspace, metallb, manual storageclass, gateway (, ingress)
-$ make config-c
 ```
+
+Note that the `initialize`` rule internally calls the following rules:
+
+1. **`cluster-c`**: Creates the Kubernetes cluster.
+2. **`metallb-c`**: Installs Load Balancer (metallb), used by the Kubernetes API.
+3. **`helm_repo-c`**: Installs app-specific helm repositories.
+4. **`istio-c`**: Installs istio.
+5. **`config-c`**: Sets up cluster level configuration, e.g., namespace, metallb, gateway, (and ingress).
 
 ## File/Directory Description
 ```sh
