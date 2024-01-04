@@ -16,5 +16,5 @@
 - 일반적으로 많이 사용하는 container registry 앱은 [Harbor](https://goharbor.io/)인 듯.
 - 그러나 Harbor는 상기 목적 상 일종의 over-engineering으로, Docker Registry에 비해 불필요하게 사용법이 복잡하고 무거움.
 
-## Manual volume provisioning에 관하여
-Docker Registry app은 manual volume provisioning을 사용한다. [pv.yaml](./pv.yaml), [pvc.yaml](./pvc.yaml)은 이를 위한 manifest로, [value.yaml]()에서 해당 pvc를 참조한다. [Manual volume provisioning](../../cluster/manual-volume-provisioning.md)는 이에 대한 상세 설명이다.
+## 기존 storage 재사용에 관하여
+Docker Registry app은 기존 storage 재사용이 가능하다. [`pv.yaml`](./pv.yaml), [`pvc.yaml`](./pvc.yaml)은 이를 위한 manifest로, [`value.yaml`](./values.yaml)에서 해당 pvc를 참조한다. [기존 storage 재사용 in `kind` (w/ 데이터 유지)](../../cluster/reuse-storage.kr.md)는 이에 대한 상세 설명이다.

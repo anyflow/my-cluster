@@ -109,3 +109,7 @@ Below is a list of supported (✅) or planned to be supported (🚧) apps. For m
 - 🚧 `jenkins`
 - 🚧 `kafka`
 - 🚧 `kafkaui`
+
+## Description of Techniques Used in My Cluster
+
+- **[Reusing Existing Storage in `kind` (with Data Retention)](./cluster/reuse-storage.md)**: This explains how to continue using previously stored data even after the app or cluster is restarted.

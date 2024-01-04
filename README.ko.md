@@ -110,3 +110,7 @@ local에서 동작함을 고려했을 때 Worker node를 3개나 운용하는 �
 - 🚧 `argocd`
 - 🚧 `kafka`
 - 🚧 `kafkaui`
+
+## 기타 MyCluster에서 사용된 기법에 관한 설명
+
+- **[기존 storage 재사용 in `kind` (w/ 데이터 유지)](./cluster/reuse-storage.kr.md)**: app, cluster가 재시작되어도 기존에 저장한 데이터를 그대로 사용하는 방법에 관한 설명이다.
