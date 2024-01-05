@@ -3,7 +3,7 @@
 
 ## 목표
 - **'단일 명령'으로 Kubernetes 자체를 포함한 app을 설치/삭제 가능하도록**
-    - 언제든 초기 설정에서 다시 시작할 수 있도록 하여, 설치/삭제 자체가 app을 파악하기 위한 bottleneck이 되지 않도록 하기 위함이다.
+    - 언제든 초기 설정에서 다시 시작할 수 있도록 하여, 설치/삭제 자체가 Kubernetes 및 app 파악에 장애물이 안되도록 하기 위함이다.
 - **단일 host에서 실제 운용 가능하도록**
     - 사실 상 home server/cluster로 운용하기 위함이다. 당연하게도 internet 노출을 포함한다.
 
@@ -19,11 +19,17 @@
   - **개인키**: `/cert/privkey.pem`
 
 ## 사용법
-모든 명령은 Kubernetes 자체를 포함하여 app 및 세부 설정의 생성/삭제/재시작에 해당하여 `Makefile`을 사용한다. `Makefile` rule 명명 규칙은 생성의 경우 `{app name}-c`, 삭제는 `{app}-d`, 재실행은 `{app name}-r`이다. 다음은 Prometheus의 예이다.
+모든 명령은 `Makefile` rule을 사용한다. 또한 대부분의 명령은 Kubernetes 자체를 포함한 app의 생성, 삭제로서, rule 명명 규칙은 생성(create)의 경우 `{name}-c`, 삭제(delete)는 `{name}-d`이다. 다음은 Kubernetes cluster와 Prometheus의 예이다.
 
-- 생성: `make prometheus-c`
-- 삭제: `make prometheus-d`
-- 재시작: `make prometheus-r`
+```sh
+# Kubernetes cluster
+$ make cluster-c # creation
+$ make cluster-d # deletion
+
+# Prometheus
+$ make prometheus-c # creation
+$ make prometheus-d # deletion
+```
 
 이외에 각 app별 특화 사항에 대해서는 [`/apps`](./apps) 내 각 app directory의 `README.md`를 참고한다.
 
@@ -61,12 +67,17 @@ $ make initialize
 4. **`istio-c`**: istio 설치
 5. **`config-c`**: cluster level configuration 설정 e.g. namspace, metallb, gateway (, ingress)
 
+
 ## 파일/디렉토리 설명
 ```sh
 root
 ├── cluster           # Kubernetes manifests in cluster level
 ├── apps              # app collection
 │  ├── prometheus     # files for app - prometheus
+│  ├── ...
+├── cert              # cert. files
+│  ├── fullchain.pem  # full chain certificate file (ignored in git)
+│  ├── privkey.pem    # private key file (ignored in git)
 │  ├── ...
 ├── nodes             # Kubernetes worker node files (ignored in git)
 │  ├── worker0        # worker node 0
@@ -88,7 +99,7 @@ Minikube가 아닌 [`kind`](https://kind.sigs.k8s.io/)를 사용하는데, 처�
 이외의 namespace를 사용하지 않는 별다른 이유없이 편의성 때문이다. `istio-system`는 `istio` 및 eco family 설치 시 이외의 namespace를 사용할 경우 많은 시행 착오가 요구되기에 별도로 빠졌다.
 
 ### (`ingress` 대신) `Kubernetes Gateway API` 사용
-`Kuberenetes Gateway API`는 `ingress`를 대체하는 새로운 Kubernetes API로서, Kubernetes Service를 외부에 노출하기 위해 default로 사용한다. 본 프로젝트에는 `ingress`에 대한 설정도 포함되어 있지만 상당 부분 comment out되어 있지만, 대부분 turn off되어 있다.
+`Kuberenetes Gateway API`는 `ingress`를 대체하는 새로운 Kubernetes API로서, Kubernetes Service를 외부에 노출하기 위해 default로 사용한다. 본 프로젝트는 `ingress`에 대한 설정도 일부 포함하지만 주석화를 통해 꺼져있다. [Kubernetes Gateway API로 Ingress 교체하기](https://www.anyflow.net/sw-engineer/replace-ingress-into-gatewayapi)는 이에 대한 자세한 설명이다.
 
 ### 3개의 worker node
 local에서 동작함을 고려했을 때 Worker node를 3개나 운용하는 것은 불필요하나 Elasticsearch, MongoDB 등의 sharding, replication 테스트를 위해 3개로 설정했다. 불필요하다 생각되면 `kind-config.yaml`에서 1개로 설정해도 무방하다.
@@ -113,4 +124,5 @@ local에서 동작함을 고려했을 때 Worker node를 3개나 운용하는 �
 
 ## 기타 MyCluster에서 사용된 기법에 관한 설명
 
-- **[기존 storage 재사용 in `kind` (w/ 데이터 유지)](./cluster/reuse-storage.kr.md)**: app, cluster가 재시작되어도 기존에 저장한 데이터를 그대로 사용하는 방법에 관한 설명이다.
+- **[기존 storage 재사용 in `kind` (w/ 데이터 유지)](./cluster/reuse-storage.kr.md)**: app, cluster가 재시작되어도 기존에 저장한 데이터를 그대로 사용하는 방법이다.
+- **[Kubernetes Gateway API로 Ingress 교체하기](https://www.anyflow.net/sw-engineer/replace-ingress-into-gatewayapi)**: 제목 그대로 ingress를 Kubernetes Gateway API로 교체하는 방법이다.

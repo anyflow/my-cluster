@@ -3,7 +3,7 @@ This project aims to 'quickly' set up and tear down a Kubernetes and various app
 
 ## Objectives
 - **Enable installation/deletion of apps, including Kubernetes itself, with a 'single command'**
-  - The goal is to restart from the initial setup at any time, ensuring that the installation/deletion process itself doesn't become a bottleneck in understanding the apps.
+  - The goal is to restart from the initial setup at any time, ensuring that the installation/deletion process itself doesn't become a bottleneck in understanding Kubernetes and the apps.
 - **Make it operable in a single host**
   - Essentially, to function as a home server/cluster. Naturally, this includes exposure to the internet.
 
@@ -19,10 +19,17 @@ Operating on a MacBook Pro from 2011 (w/ 16G Memory) under Ubuntu Linux (Refer t
   - **Private Key**: `/cert/privkey.pem`
 
 ## Usage
-All commands include the creation, deletion, and restart of Kubernetes itself, apps, and detailed settings using a Makefile. The naming convention for Makefile rules is `{app name}-c` for creation, `{app name}-d` for deletion, and `{app name}-r` for restart. Here's an example with Prometheus:
-- Create: `make prometheus-c`
-- Delete: `make prometheus-d`
-- Restart: `make prometheus-r`
+All commands use `Makefile` rules. Most commands involve creating or deleting apps, including Kubernetes itself. The naming convention for the rules is `{name}-c` for creation (create) and `{name}-d` for deletion (delete). Below are examples for Kubernetes cluster and Prometheus.
+
+```sh
+# Kubernetes cluster
+$ make cluster-c # creation
+$ make cluster-d # deletion
+
+# Prometheus
+$ make prometheus-c # creation
+$ make prometheus-d # deletion
+```
 
 For specialized aspects of each app, refer to the `README.md` in each app directory in [`/apps`](./apps) directory.
 
@@ -54,11 +61,11 @@ $ make initialize
 
 Note that the `initialize`` rule internally calls the following rules:
 
-1. **`cluster-c`**: Creates the Kubernetes cluster.
+1. prometheus-cr-c`**: Creates the Kubernetes cluster.
 2. **`metallb-c`**: Installs Load Balancer (metallb), used by the Kubernetes API.
-3. **`helm_repo-c`**: Installs app-specific helm repositories.
+3. prometheus-cepo-c`**: Installs app-specific helm repositories.
 4. **`istio-c`**: Installs istio.
-5. **`config-c`**: Sets up cluster level configuration, e.g., namespace, metallb, gateway, (and ingress).
+5. **`config-c**: Sets up cluster level configuration, e.g., namespace, metallb, gateway, (and ingress).
 
 ## File/Directory Description
 ```sh
@@ -66,6 +73,10 @@ root
 ├── cluster           # Kubernetes manifests in cluster level
 ├── apps              # app collection
 │  ├── prometheus     # files for app - prometheus
+│  ├── ...
+├── cert              # cert. files
+│  ├── fullchain.pem  # full chain certificate file (ignored in git)
+│  ├── privkey.pem    # private key file (ignored in git)
 │  ├── ...
 ├── nodes             # Kubernetes worker node files (ignored in git)
 │  ├── worker0        # worker node 0
@@ -86,8 +97,9 @@ Instead of Minikube, [`kind`](https://kind.sigs.k8s.io/) is used, as when this p
 ### Using Only Two Namespaces: `cluster` and `istio-system`
 Other namespaces are not used for convenience. `istio-system` is specifically chosen because using `istio` and its eco family in other namespaces often requires extensive trial and error.
 
-### Using `Kubernetes Gateway API` Instead of `ingress`
-The `Kubernetes Gateway API` is a new Kubernetes API that replaces `ingress`, used by default to expose Kubernetes Services externally. This project includes configurations for `ingress`, but most of these are commented out and generally turned off.
+### Using `Kubernetes Gateway API` Instead of `Ingress`
+The `Kubernetes Gateway API` is a new Kubernetes API that replaces `ingress`. It is used by default to expose Kubernetes Services externally. This project includes some configurations for `ingress` as well, but they are commented out and turned off. [Replace Ingress with Kubernetes Gateway API](https://www.anyflow.net/sw-engineer/replace-ingress-into-gatewayapi) (Korean) provides a detailed explanation on this topic.
+
 
 ### Three Worker Nodes
 Considering it operates locally, using three worker nodes is unnecessary. However, they are set to three for testing sharding and replication in systems like `Elasticsearch` and `MongoDB`. If deemed unnecessary, you can configure it to just one node in the `kind-config.yaml` file.
@@ -113,3 +125,4 @@ Below is a list of supported (✅) or planned to be supported (🚧) apps. For m
 ## Description of Techniques Used in My Cluster
 
 - **[Reusing Existing Storage in `kind` (with Data Retention)](./cluster/reuse-storage.md)**: This explains how to continue using previously stored data even after the app or cluster is restarted.
+- **[Replace Ingress with Kubernetes Gateway API](https://www.anyflow.net/sw-engineer/replace-ingress-into-gatewayapi) (Korean)**: As the title suggests, this is a guide on how to replace `ingress` with the `Kubernetes Gateway API`.
