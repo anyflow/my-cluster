@@ -23,12 +23,12 @@ All commands use `Makefile` rules. Most commands involve creating or deleting ap
 
 ```sh
 # Kubernetes cluster
-$ make cluster-c # creation
-$ make cluster-d # deletion
+make cluster-c    # creation
+make cluster-d    # deletion
 
 # Prometheus
-$ make prometheus-c # creation
-$ make prometheus-d # deletion
+make prometheus-c # creation
+make prometheus-d # deletion
 ```
 
 For specialized aspects of each app, refer to the `README.md` in each app directory in [`/apps`](./apps) directory.
@@ -47,25 +47,25 @@ DOMAIN_DOCKER_REGISTRY=docker-registry.anyflow.net
 ### 2. Create a cluster and set cluster-level app, configuration
 The specific content and procedures for installing/configuring Kubernetes and cluster levels are as follows. For each app, refer to the above usage instructions and install separately as needed.
 
+
 ```bash
-# Clone the project
-$ git clone https://github.com/anyflow/my-cluster.git
-...
-# Change current working directory
-$ cd my-cluster
-...
-# Create Kubernetes cluster, configurate cluster level app, settings
-$ make initialize
-...
+# 1. Clone the project
+git clone https://github.com/anyflow/my-cluster.git
+
+# 2. Change current working directory
+cd my-cluster
+
+# 3. Create Kubernetes cluster, configurate cluster level app, settings.
+make initialize
 ```
 
 Note that the `initialize`` rule internally calls the following rules:
 
-1. prometheus-cr-c`**: Creates the Kubernetes cluster.
+1. **`prometheus-cr-c`**: Creates the Kubernetes cluster.
 2. **`metallb-c`**: Installs Load Balancer (metallb), used by the Kubernetes API.
-3. prometheus-cepo-c`**: Installs app-specific helm repositories.
+3. **`prometheus-cepo-c`**: Installs app-specific helm repositories.
 4. **`istio-c`**: Installs istio.
-5. **`config-c**: Sets up cluster level configuration, e.g., namespace, metallb, gateway, (and ingress).
+5. **`config-c`**: Sets up cluster level configuration, e.g., namespace, metallb, gateway, (and ingress).
 
 ## File/Directory Description
 ```sh
@@ -107,10 +107,8 @@ Considering it operates locally, using three worker nodes is unnecessary. Howeve
 ## Supported App List
 Below is a list of supported (✅) or planned to be supported (🚧) apps. For more details, refer to the `README.md` in the respective app directory.
 
-- **✅ `docker-registry`**
-  - Detailed Description: [`apps/docker-registry/README.md`](./apps/docker-registry/README.md)
-  - Create Command: `make docker_registry-c`
-  - Delete Command: `make docker_registry-d`
+- **✅ `docker-registry`**: [`/apps/docker-registry/README.md`](./apps/docker-registry/README.md)
+- **✅ `jenkins`**: [`/apps/jenkins/README.md`](./apps/jenkins/README.md)
 - 🚧 `jaeger`
 - 🚧 `prmetheus`
 - 🚧 `grafana`
@@ -118,7 +116,6 @@ Below is a list of supported (✅) or planned to be supported (🚧) apps. For m
 - 🚧 `fluentbit`
 - 🚧 `kibana`
 - 🚧 `argocd`
-- 🚧 `jenkins`
 - 🚧 `kafka`
 - 🚧 `kafkaui`
 

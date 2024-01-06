@@ -1,15 +1,21 @@
 # App: Docker Registry
 
-## Requirements
+## Key Considerations
 - Ability to use images in MyCluster without relying on external registries like Docker Hub.
 - Enable image push capabilities both locally and remotely.
 - Ensure that data stored in storage remains intact and reusable, even if the Cluster or Docker Registry App is removed.
 - Minimize or eliminate complexity in configuration and usage due to authentication.
 
-## Image & Helm
-- Image: [https://hub.docker.com/_/registry](https://hub.docker.com/_/registry)
-- Tag: 2.8.3
-- Helm repo description: [https://artifacthub.io/packages/helm/phntom/docker-registry](https://artifacthub.io/packages/helm/phntom/docker-registry)
+## Settings
+- **Used Helm chart**
+  - https://artifacthub.io/packages/helm/phntom/docker-registry
+- **Access Address**
+  - Defined as `DOMAIN_DOCKER_REGISTRY` in `.env`
+- **Data Storage Location**
+  - `/nodes/worker0/var/local-path-provisioner/docker-registry`
+- **Relevant Commands in [Makefile](../../Makefile)**
+  - `Creation`: `make docker_registry-c`
+  - `Deletion`: `make docker_registry-d`
 
 ## Why Docker Registry not Harbor?
 - The commonly used container registry app seems to be [Harbor](https://goharbor.io/).

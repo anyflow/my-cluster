@@ -23,12 +23,12 @@
 
 ```sh
 # Kubernetes cluster
-$ make cluster-c # creation
-$ make cluster-d # deletion
+make cluster-c    # creation
+make cluster-d    # deletion
 
 # Prometheus
-$ make prometheus-c # creation
-$ make prometheus-d # deletion
+make prometheus-c # creation
+make prometheus-d # deletion
 ```
 
 이외에 각 app별 특화 사항에 대해서는 [`/apps`](./apps) 내 각 app directory의 `README.md`를 참고한다.
@@ -48,15 +48,14 @@ DOMAIN_DOCKER_REGISTRY=docker-registry.anyflow.net
 Kubernetes 및 주요 cluster level의 설치/설정으로 구체적 내용 및 절차는 다음과 같다. 이외 각 app에 대해서는 위 사용법을 참조하여 별도로 필요에 따라 설치한다.
 
 ```bash
-# Clone the project
-$ git clone https://github.com/anyflow/my-cluster.git
-...
-# Change current working directory
-$ cd my-cluster
-...
-# Create Kubernetes cluster, configurate cluster level app, settings.
-$ make initialize
-...
+# 1. Clone the project
+git clone https://github.com/anyflow/my-cluster.git
+
+# 2. Change current working directory
+cd my-cluster
+
+# 3. Create Kubernetes cluster, configurate cluster level app, settings.
+make initialize
 ```
 
 참고로 아래는 `initialize` rule 내부에서 호출하는 rule 절차이다.
@@ -107,11 +106,8 @@ local에서 동작함을 고려했을 때 Worker node를 3개나 운용하는 �
 ## 지원 app 목록
 아래는 지원(✅) 또는 지원 예정(🚧)인 app 목록으로 세부 사항은 해당 app directory의 `README.md`를 참조한다.
 
-- **✅ `docker-registry`**
-  - 상세 설명: [`apps/docker-registry/README.ko.md`](./apps/docker-registry/README.md)
-  - 생성 명령: `make docker_registry-c`
-  - 삭제 명령: `make docker_registry-d`
-- 🚧 `jenkins`
+- **✅ `docker-registry`**: [`/apps/docker-registry/README.ko.md`](./apps/docker-registry/README.md)
+- **✅ `jenkins`**: [`/apps/jenkins/README.ko.md`](./apps/jenkins/README.md)
 - 🚧 `jaeger`
 - 🚧 `prmetheus`
 - 🚧 `grafana`
