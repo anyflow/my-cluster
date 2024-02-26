@@ -120,7 +120,7 @@ jaeger-d:
 
 
 kiali-c:
-	helm upgrade -i kiali kiali/kiali-server -n istio-system -f ./apps/kiali/values.yaml
+	helm upgrade -i kiali kiali/kiali-server -n istio-system -f ./apps/kiali/values.yaml --version 1.76
 	@sed 's/kiali.anyflow.net/${DOMAIN_KIALI}/' ./apps/kiali/httproute.yaml | kubectl apply -f -
 kiali-d:
 	helm uninstall kiali -n istio-system
