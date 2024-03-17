@@ -71,7 +71,7 @@ config:
             Index           krakend
             HTTP_User       anyflow
             HTTP_Passwd     mycluster
-            tls             On
+            tls             Off
             tls.verify      Off
             Suppress_Type_Name On
             Logstash_Format On
@@ -90,7 +90,7 @@ config:
             Index           dockebi
             HTTP_User       anyflow
             HTTP_Passwd     mycluster
-            tls             On
+            tls             Off
             tls.verify      Off
             Suppress_Type_Name On
             Logstash_Format On

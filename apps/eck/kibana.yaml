@@ -8,6 +8,20 @@ spec:
     tls:
       selfSignedCertificate: # Required to work in istio environment
         disabled: true
+  podTemplate:
+    spec:
+      containers:
+        - name: kibana
+          env:
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=2048"
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 1
+            limits:
+              memory: 1Gi
+              cpu: 1
   count: 1
   elasticsearchRef:
     name: elasticsearch

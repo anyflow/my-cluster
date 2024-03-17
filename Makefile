@@ -171,24 +171,26 @@ push_agent:
 		--file ./apps/jenkins/Dockerfile.agent \
 		./apps/jenkins
 
-elasticsearch-c:
-	helm upgrade -i elasticsearch elastic/elasticsearch -n cluster -f ./apps/elasticsearch/values.yaml
-elasticsearch-d:
-	helm uninstall elasticsearch
+eck-c:
+	kubectl create ns elastic-system || true
+	kubectl label namespace elastic-system istio-injection=enabled || true
+	kubectl create -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml || true
+	kubectl apply -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml || true
+	kubectl apply -f apps/eck/elasticsearch.yaml || true
+	kubectl apply -f apps/eck/kibana.yaml || true
+	kubectl apply -f apps/eck/httproute.yaml || true
+eck-d:
+	kubectl delete -f apps/eck/httproute.yaml || true
+	kubectl delete -f apps/eck/kibana.yaml || true
+	kubectl delete -f apps/eck/elasticsearch.yaml || true
+	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml || true
+	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml || true
+	kubectl delete ns elastic-system || true
+eck-password:
+	kubectl get secret elasticsearch-es-elastic-user -o go-template='{{.data.elastic | base64decode}}'
 
-
-kibana-c:
-	helm upgrade -i kibana elastic/kibana -n cluster -f ./apps/kibana/values.yaml
-kibana-d:
-	helm uninstall kibana
 kibana_objects:
 	curl -X POST "kibana.lgthinq.com.local/api/saved_objects/_import" -H "kbn-xsrf: true" --form file=@elasticsearch/dashboard.ndjson -H "kbn-xsrf: true"
-kibana-clean-helm-on-error:
-	kubectl delete serviceaccounts pre-install-kibana-kibana || true
-	kubectl delete role pre-install-kibana-kibana || true
-	kubectl delete rolebindings.rbac.authorization.k8s.io pre-install-kibana-kibana || true
-	kubectl delete jobs.batch pre-install-kibana-kibana || true
-	kubectl delete configmaps kibana-kibana-helm-scripts || true
 
 
 fluentbit-c:
@@ -217,23 +219,14 @@ kafka_client-d:
 exec_kafka_client:
 	kubectl exec -it -n cluster kafka-client -- bash
 
-eck-c:
-	kubectl create ns elastic-system
-	kubectl label namespace elastic-system istio-injection=enabled
-	kubectl create -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml
-	kubectl apply -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml
-	kubectl apply -f apps/eck/elasticsearch.yaml
-	kubectl apply -f apps/eck/kibana.yaml
-	kubectl apply -f apps/eck/httproute.yaml
-eck-d:
-	kubectl delete -f apps/eck/httproute.yaml
-	kubectl delete -f apps/eck/kibana.yaml
-	kubectl delete -f apps/eck/elasticsearch.yaml
-	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml
-	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml
-	kubectl delete ns elastic-system
-
 
 otel-c:
 	# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
 	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
+
+
+# DO it to prevent "failed to create fsnotify watcher: too many open files" error in "kubectl logs -f" command
+enlarge_open_file_count:
+	sudo sysctl -w fs.inotify.max_user_watches=2099999999
+	sudo sysctl -w fs.inotify.max_user_instances=2099999999
+	sudo sysctl -w fs.inotify.max_queued_events=2099999999

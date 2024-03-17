@@ -17,14 +17,6 @@ POST kbn:api/data_views/data_view
     "timeFieldName": "timestamp"
   }
 }
-POST kbn:api/data_views/data_view
-{
-  "data_view": {
-    "title": "krakend-*",
-    "name": "krakend",
-    "timeFieldName": "timestamp"
-  }
-}
 PUT _ilm/policy/30days_retention_policy
 {
   "policy": {
@@ -44,7 +36,6 @@ PUT _ilm/policy/30days_retention_policy
 PUT /_index_template/mycluster_template
 {
   "index_patterns": [
-    "krakend-*",
     "dockebi-*"
   ],
   "template": {
