@@ -1,0 +1,13 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: kibana
+spec:
+  version: 8.12.2
+  http:
+    tls:
+      selfSignedCertificate: # Required to work in istio environment
+        disabled: true
+  count: 1
+  elasticsearchRef:
+    name: elasticsearch

@@ -2,18 +2,7 @@ include .env
 
 export
 
-
-port_forward:
-	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 80 -j ACCEPT
-	sudo iptables -t nat -A DOCKER -p tcp --dport 80 -j DNAT --to-destination 172.18.255.200:80
-	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 80 -j MASQUERADE
-
-	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 443 -j ACCEPT
-	sudo iptables -t nat -A DOCKER -p tcp --dport 443 -j DNAT --to-destination 172.18.255.200:443
-	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 443 -j MASQUERADE
-
-
-initialize: cluster-c metallb-c helm_repo-c istio-c config-c
+initialize: cluster-c metallb-c helm_repo-c istio-c config-c port_forward
 
 
 cluster-c:
@@ -75,6 +64,16 @@ config-c:
 # 	kubectl wait pods -n ingress-nginx -l app.kubernetes.io/component=controller --for condition=Ready --timeout=300s
 
 
+port_forward:
+	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 80 -j ACCEPT
+	sudo iptables -t nat -A DOCKER -p tcp --dport 80 -j DNAT --to-destination 172.18.255.200:80
+	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 80 -j MASQUERADE
+
+	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 443 -j ACCEPT
+	sudo iptables -t nat -A DOCKER -p tcp --dport 443 -j DNAT --to-destination 172.18.255.200:443
+	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 443 -j MASQUERADE
+
+
 __create_dir:
 	test -d $$CREATE_DIR_TARGET || sudo mkdir $$CREATE_DIR_TARGET; \
 	sudo chown -R 1000:1000 $$CREATE_DIR_TARGET; \
@@ -93,6 +92,20 @@ docker_registry-c:
 docker_registry-d:
 	helm uninstall docker-registry -n cluster
 	kubectl delete -f ./apps/docker-registry/httproute.yaml
+
+
+docserver-c:
+	kubectl apply -k ./apps/docserver/kustomize/overlays/prod
+docserver-d:
+	kubectl delete -k ./apps/docserver/kustomize/overlays/prod
+docserver-r: docserver-d docserver-c
+
+
+dockebi-c:
+	kubectl apply -k ./apps/dockebi/deployment/overlays/prod
+dockebi-d:
+	kubectl delete -k ./apps/dockebi/deployment/overlays/prod
+dockebi-r: dockebi-d dockebi-c
 
 
 prometheus-c:
@@ -150,6 +163,13 @@ jenkins-d:
 	kubectl delete -f ./apps/jenkins/pvc.yaml
 	kubectl delete -f ./apps/jenkins/pv.yaml
 
+push_agent:
+	docker buildx build \
+		--push \
+		--platform linux/amd64 \
+		--tag docker-registry.anyflow.net/jenkins-agent:latest \
+		--file ./apps/jenkins/Dockerfile.agent \
+		./apps/jenkins
 
 elasticsearch-c:
 	helm upgrade -i elasticsearch elastic/elasticsearch -n cluster -f ./apps/elasticsearch/values.yaml
@@ -163,20 +183,12 @@ kibana-d:
 	helm uninstall kibana
 kibana_objects:
 	curl -X POST "kibana.lgthinq.com.local/api/saved_objects/_import" -H "kbn-xsrf: true" --form file=@elasticsearch/dashboard.ndjson -H "kbn-xsrf: true"
-
-
-docserver-c:
-	kubectl apply -k ./apps/docserver/kustomize/overlays/prod
-docserver-d:
-	kubectl delete -k ./apps/docserver/kustomize/overlays/prod
-docserver-r: docserver-d docserver-c
-
-
-dockebi-c:
-	kubectl apply -k ./apps/dockebi/deployment/overlays/prod
-dockebi-d:
-	kubectl delete -k ./apps/dockebi/deployment/overlays/prod
-dockebi-r: dockebi-d dockebi-c
+kibana-clean-helm-on-error:
+	kubectl delete serviceaccounts pre-install-kibana-kibana || true
+	kubectl delete role pre-install-kibana-kibana || true
+	kubectl delete rolebindings.rbac.authorization.k8s.io pre-install-kibana-kibana || true
+	kubectl delete jobs.batch pre-install-kibana-kibana || true
+	kubectl delete configmaps kibana-kibana-helm-scripts || true
 
 
 fluentbit-c:
@@ -204,3 +216,24 @@ kafka_client-d:
 
 exec_kafka_client:
 	kubectl exec -it -n cluster kafka-client -- bash
+
+eck-c:
+	kubectl create ns elastic-system
+	kubectl label namespace elastic-system istio-injection=enabled
+	kubectl create -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml
+	kubectl apply -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml
+	kubectl apply -f apps/eck/elasticsearch.yaml
+	kubectl apply -f apps/eck/kibana.yaml
+	kubectl apply -f apps/eck/httproute.yaml
+eck-d:
+	kubectl delete -f apps/eck/httproute.yaml
+	kubectl delete -f apps/eck/kibana.yaml
+	kubectl delete -f apps/eck/elasticsearch.yaml
+	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml
+	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml
+	kubectl delete ns elastic-system
+
+
+otel-c:
+	# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml

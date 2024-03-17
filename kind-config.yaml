@@ -28,13 +28,19 @@ nodes:
     extraMounts:
       - hostPath: ./nodes/worker0/var/local-path-provisioner
         containerPath: /var/local-path-provisioner # storage default path including dynamic, manual provisioning
+      - hostPath: /var/run/docker.sock
+        containerPath: /var/run/docker.sock
 
   - role: worker
     extraMounts:
       - hostPath: ./nodes/worker1/var/local-path-provisioner
         containerPath: /var/local-path-provisioner # storage default path including dynamic, manual provisioning
+      - hostPath: /var/run/docker.sock
+        containerPath: /var/run/docker.sock
 
-  - role: worker
-    extraMounts:
-      - hostPath: ./nodes/worker2/var/local-path-provisioner
-        containerPath: /var/local-path-provisioner # storage default path including dynamic, manual provisioning
+  # - role: worker
+  #   extraMounts:
+  #     - hostPath: ./nodes/worker2/var/local-path-provisioner
+  #       containerPath: /var/local-path-provisioner # storage default path including dynamic, manual provisioning
+  #     - hostPath: /var/run/docker.sock
+  #       containerPath: /var/run/docker.sock
