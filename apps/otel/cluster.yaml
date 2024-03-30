@@ -1,0 +1,154 @@
+# TODO replace 0.0.0.0
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-cluster
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - events
+      - namespaces
+      - namespaces/status
+      - nodes
+      - nodes/spec
+      - pods
+      - pods/status
+      - replicationcontrollers
+      - replicationcontrollers/status
+      - resourcequotas
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - deployments
+      - replicasets
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - extensions
+    resources:
+      - daemonsets
+      - deployments
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-cluster-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-cluster
+subjects:
+  - kind: ServiceAccount
+    name: otel-cluster-collector
+    namespace: cluster
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-cluster-targetallocator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-cluster
+subjects:
+  - kind: ServiceAccount
+    name: otel-cluster-targetallocator
+    namespace: cluster
+---
+# otel-cluster-collector service accounts are created automatically
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-cluster
+  namespace: cluster
+  labels:
+    app: opentelemetry
+spec:
+  mode: deployment
+  replicas: 1
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8888"
+  config: |
+    extensions:
+      health_check: # for k8s liveness and readiness probes
+        endpoint: 0.0.0.0:13133 # default
+
+    processors:
+      batch: # buffer up to 10000 spans, metric data points, log records for up to 5 seconds
+        send_batch_size: 10000
+        timeout: 5s
+      memory_limiter:
+        check_interval: 1s # recommended by official README
+        limit_percentage: 80 # in 1Gi memory environment, hard limit is 800Mi
+        spike_limit_percentage: 25 # in 1Gi memory environment, soft limit is 500Mi (800 - 250 = 550Mi)
+
+    exporters:
+      debug:
+        verbosity: detailed # default is basic
+      otlphttp:
+        endpoint: http://prometheus-server.cluster:80/api/v1/otlp/v1/write
+    service:
+      extensions:
+        - health_check
+
+      telemetry:
+        logs:
+          level: DEBUG
+        metrics:
+          address: 0.0.0.0:8888
+
+      pipelines:
+        metrics:
+          receivers:
+            - k8s_cluster
+          processors:
+            - memory_limiter
+            - batch
+          exporters:
+            - otlphttp
+
+    receivers:
+      k8s_cluster:
+        collection_interval: 10s
+        node_conditions_to_report:
+          - Ready
+          - MemoryPressure
+        allocatable_types_to_report:
+          - cpu
+          - memory
+          - ephemeral-storage
+          - storage

@@ -19,6 +19,7 @@ global:
 
 meshConfig:
   defaultConfig:
+    holdApplicationUntilProxyStarts: true
     tracing:
       zipkin:
         address: jaeger-collector.istio-system.svc:9411 # jaeger collector address

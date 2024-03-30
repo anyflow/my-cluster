@@ -20,6 +20,7 @@ metallb-c:
 
 
 helm_repo-c:
+	helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 	helm repo add istio https://istio-release.storage.googleapis.com/charts
 	helm repo add prometheus https://prometheus-community.github.io/helm-charts
 	helm repo add grafana https://grafana.github.io/helm-charts
@@ -34,7 +35,7 @@ helm_repo-c:
 
 
 istio-c:
-	kubectl create ns istio-system
+	kubectl create ns istio-system || true
 	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=default
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml
 istio-d:
@@ -107,11 +108,17 @@ dockebi-d:
 	kubectl delete -k ./apps/dockebi/deployment/overlays/prod
 dockebi-r: dockebi-d dockebi-c
 
+PROMETHEUS_POD_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
+PROMETHEUS_SERVICE_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
 
 prometheus-c:
 	helm upgrade -i prometheus prometheus/prometheus -n cluster -f ./apps/prometheus/values.yaml
 	@sed 's/prometheus.anyflow.net/${DOMAIN_PROMETHEUS}/' ./apps/prometheus/httproute.yaml | kubectl apply -f -
+	kubectl apply -f ${PROMETHEUS_POD_MONITORS_CRD}
+	kubectl apply -f ${PROMETHEUS_SERVICE_MONITORS_CRD}
 prometheus-d:
+	kubectl delete -f ${PROMETHEUS_POD_MONITORS_CRD} || true
+	kubectl delete -f ${PROMETHEUS_SERVICE_MONITORS_CRD} || true
 	helm uninstall prometheus
 	kubectl delete -f ./apps/prometheus/httproute.yaml
 
@@ -163,32 +170,30 @@ jenkins-d:
 	kubectl delete -f ./apps/jenkins/pvc.yaml
 	kubectl delete -f ./apps/jenkins/pv.yaml
 
-push_agent:
-	docker buildx build \
-		--push \
-		--platform linux/amd64 \
-		--tag docker-registry.anyflow.net/jenkins-agent:latest \
-		--file ./apps/jenkins/Dockerfile.agent \
-		./apps/jenkins
 
 eck-c:
 	kubectl create ns elastic-system || true
 	kubectl label namespace elastic-system istio-injection=enabled || true
 	kubectl create -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml || true
 	kubectl apply -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml || true
-	kubectl apply -f apps/eck/elasticsearch.yaml || true
-	kubectl apply -f apps/eck/kibana.yaml || true
-	kubectl apply -f apps/eck/httproute.yaml || true
 eck-d:
-	kubectl delete -f apps/eck/httproute.yaml || true
-	kubectl delete -f apps/eck/kibana.yaml || true
-	kubectl delete -f apps/eck/elasticsearch.yaml || true
 	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml || true
 	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml || true
 	kubectl delete ns elastic-system || true
-eck-password:
+
+elasticsearch-c:
+	kubectl apply -f apps/eck/elasticsearch.yaml
+elasticsearch-d:
+	kubectl delete -f apps/eck/elasticsearch.yaml
+elasticsearch-password:
 	kubectl get secret elasticsearch-es-elastic-user -o go-template='{{.data.elastic | base64decode}}'
 
+kibana-c:
+	kubectl apply -f apps/eck/kibana.yaml || true
+	kubectl apply -f apps/eck/httproute.yaml
+kibana-d:
+	kubectl delete -f apps/eck/httproute.yaml
+	kubectl delete -f apps/eck/kibana.yaml
 kibana_objects:
 	curl -X POST "kibana.lgthinq.com.local/api/saved_objects/_import" -H "kbn-xsrf: true" --form file=@elasticsearch/dashboard.ndjson -H "kbn-xsrf: true"
 
@@ -209,7 +214,6 @@ kafkaui-c:
 kafkaui-d:
 	helm uninstall -n cluster kafkaui
 
-
 kafka_client-c:
 	kubectl run kafka-client --restart='Never' --image docker.io/bitnami/kafka:3.4.0-debian-11-r22 --namespace cluster --command -- sleep infinity
 kafka_client-d:
@@ -219,10 +223,33 @@ kafka_client-d:
 exec_kafka_client:
 	kubectl exec -it -n cluster kafka-client -- bash
 
-
 otel-c:
-	# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
-	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
+	helm upgrade -i opentelemetry-operator open-telemetry/opentelemetry-operator -f apps/otel/operator.values.yaml
+otel-d:
+	helm uninstall opentelemetry-operator
+
+otel-prometheus-c:
+	kubectl apply -f apps/otel/prometheus.yaml
+otel-prometheus-d:
+	kubectl delete -f apps/otel/prometheus.yaml
+
+
+# otel-prometheus-c:
+# 	helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+# 	helm upgrade -i -n cluster otel-prometheus open-telemetry/opentelemetry-collector -f apps/otel/prometheus.values.yaml
+# otel-prometheus-d:
+# 	helm uninstall otel-prometheus
+
+
+cert_manager-c:
+	kubectl create ns cert-manager || true
+	kubectl label namespace cert-manager istio-injection=enabled || true
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+
+cert_manager-d:
+	kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+
+
 
 
 # DO it to prevent "failed to create fsnotify watcher: too many open files" error in "kubectl logs -f" command

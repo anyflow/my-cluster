@@ -1,4 +1,11 @@
 server:
+  extraFlags:
+    - web.enable-lifecycle #default
+    - web.enable-remote-write-receiver # allow remote write
+    - enable-feature=otlp-write-receiver # allow OTLP receiver
+  extraArgs:
+    log.level: debug
+
   replicaCount: 1
   statefulSet:
     enabled: false
@@ -7,190 +14,28 @@ server:
     storageClass: "standard"
   ingress:
     enabled: false
-    hosts:
-      - prometheus.anyflow.net
-    ingressClassName: nginx
-    path: /
-    pathType: Prefix
-    tls:
-      - secretName: default-tls
-        hosts:
-          - prometheus.anyflow.net
+
+prometheus-node-exporter:
+  enabled: false
+
+prometheus-pushgateway:
+  enabled: false
 
 alertmanager:
   enabled: false
 
-extraScrapeConfigs: |
-  # https://istio.io/latest/docs/ops/integrations/prometheus/
-  - job_name: "istiod"
-    kubernetes_sd_configs:
-      - role: endpoints
-        namespaces:
-          names:
-            - istio-system
-    relabel_configs:
-      - source_labels:
-          [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-        action: keep
-        regex: istiod;http-monitoring
+kube-state-metrics:
+  enabled: false
 
-  # https://istio.io/latest/docs/ops/integrations/prometheus/
-  - job_name: "envoy-stats"
-    metrics_path: /stats/prometheus
-    kubernetes_sd_configs:
-      - role: pod
-
-    relabel_configs:
-      - source_labels: [__meta_kubernetes_pod_container_port_name]
-        action: keep
-        regex: ".*-envoy-prom"
-
-  # - job_name: "istio-mesh"
-  #   kubernetes_sd_configs:
-  #     - role: endpoints
-  #       namespaces:
-  #         names:
-  #           - istio-system
-
-  #   relabel_configs:
-  #     - source_labels:
-  #         [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-  #       action: keep
-  #       regex: istio-telemetry;prometheus
-
-  # # Scrape config for envoy stats
-  # - job_name: "envoy-stats"
-  #   metrics_path: /stats/prometheus
-  #   kubernetes_sd_configs:
-  #     - role: pod
-
-  #   relabel_configs:
-  #     - source_labels: [__meta_kubernetes_pod_container_port_name]
-  #       action: keep
-  #       regex: ".*-envoy-prom"
-  #     - source_labels:
-  #         [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-  #       action: replace
-  #       regex: ([^:]+)(?::\d+)?;(\d+)
-  #       replacement: $1:15090
-  #       target_label: __address__
-  #     - action: labelmap
-  #       regex: __meta_kubernetes_pod_label_(.+)
-  #     - source_labels: [__meta_kubernetes_namespace]
-  #       action: replace
-  #       target_label: namespace
-  #     - source_labels: [__meta_kubernetes_pod_name]
-  #       action: replace
-  #       target_label: pod_name
-
-  # - job_name: "istio-policy"
-  #   kubernetes_sd_configs:
-  #     - role: endpoints
-  #       namespaces:
-  #         names:
-  #           - istio-system
-
-  #   relabel_configs:
-  #     - source_labels:
-  #         [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-  #       action: keep
-  #       regex: istio-policy;http-monitoring
-
-  # - job_name: "istio-telemetry"
-  #   kubernetes_sd_configs:
-  #     - role: endpoints
-  #       namespaces:
-  #         names:
-  #           - istio-system
-
-  #   relabel_configs:
-  #     - source_labels:
-  #         [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-  #       action: keep
-  #       regex: istio-telemetry;http-monitoring
-
-  # - job_name: "pilot"
-  #   kubernetes_sd_configs:
-  #     - role: endpoints
-  #       namespaces:
-  #         names:
-  #           - istio-system
-
-  #   relabel_configs:
-  #     - source_labels:
-  #         [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-  #       action: keep
-  #       regex: istio-pilot;http-monitoring
-
-  # - job_name: "galley"
-  #   kubernetes_sd_configs:
-  #     - role: endpoints
-  #       namespaces:
-  #         names:
-  #           - istio-system
-
-  #   relabel_configs:
-  #     - source_labels:
-  #         [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-  #       action: keep
-  #       regex: istio-galley;http-monitoring
-
-  # - job_name: "citadel"
-  #   kubernetes_sd_configs:
-  #     - role: endpoints
-  #       namespaces:
-  #         names:
-  #           - istio-system
-
-  #   relabel_configs:
-  #     - source_labels:
-  #         [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-  #       action: keep
-  #       regex: istio-citadel;http-monitoring
-
-  # - job_name: "kubernetes-pods-istio-secure"
-  #   scheme: https
-  #   tls_config:
-  #     ca_file: /etc/istio-certs/root-cert.pem
-  #     cert_file: /etc/istio-certs/cert-chain.pem
-  #     key_file: /etc/istio-certs/key.pem
-  #     insecure_skip_verify: true # prometheus does not support secure naming.
-  #   kubernetes_sd_configs:
-  #     - role: pod
-  #   relabel_configs:
-  #     - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-  #       action: keep
-  #       regex: true
-  #     # sidecar status annotation is added by sidecar injector and
-  #     # istio_workload_mtls_ability can be specifically placed on a pod to indicate its ability to receive mtls traffic.
-  #     - source_labels:
-  #         [
-  #           __meta_kubernetes_pod_annotation_sidecar_istio_io_status,
-  #           __meta_kubernetes_pod_annotation_istio_mtls,
-  #         ]
-  #       action: keep
-  #       regex: (([^;]+);([^;]*))|(([^;]*);(true))
-  #     - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
-  #       action: drop
-  #       regex: (http)
-  #     - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-  #       action: replace
-  #       target_label: __metrics_path__
-  #       regex: (.+)
-  #     - source_labels: [__address__] # Only keep address that is host:port
-  #       action: keep # otherwise an extra target with ':443' is added for https scheme
-  #       regex: ([^:]+):(\d+)
-  #     - source_labels:
-  #         [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-  #       action: replace
-  #       regex: ([^:]+)(?::\d+)?;(\d+)
-  #       replacement: $1:$2
-  #       target_label: __address__
-  #     - action: labelmap
-  #       regex: __meta_kubernetes_pod_label_(.+)
-  #     - source_labels: [__meta_kubernetes_namespace]
-  #       action: replace
-  #       target_label: namespace
-  #     - source_labels: [__meta_kubernetes_pod_name]
-  #       action: replace
-  #       target_label: pod_name
+serverFiles:
+  prometheus.yml:
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets:
+              - localhost:9090
+      - job_name: otel-prometheus-collector # only collect metrics from otel-collector
+        static_configs:
+          - targets:
+              - otel-prometheus-collector.cluster.svc.cluster.local.:9090
+              # - otel-prometheus-opentelemetry-collector.cluster:9090
