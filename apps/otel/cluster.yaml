@@ -115,12 +115,11 @@ spec:
         check_interval: 1s # recommended by official README
         limit_percentage: 80 # in 1Gi memory environment, hard limit is 800Mi
         spike_limit_percentage: 25 # in 1Gi memory environment, soft limit is 500Mi (800 - 250 = 550Mi)
-
-    exporters:
-      debug:
-        verbosity: detailed # default is basic
-      otlphttp:
-        endpoint: http://prometheus-server.cluster:80/api/v1/otlp/v1/write
+      attributes:
+        actions:
+          key: elasticsearch.index.prefix
+          value: otel-k8sobject
+          action: insert
     service:
       extensions:
         - health_check
@@ -132,6 +131,17 @@ spec:
           address: 0.0.0.0:8888
 
       pipelines:
+        logs:
+          receivers:
+            - k8sobjects
+          processors:
+            - memory_limiter
+            - batch
+            - attributes
+          exporters:
+            - debug
+            - elasticsearch
+
         metrics:
           receivers:
             - k8s_cluster
@@ -142,6 +152,12 @@ spec:
             - otlphttp
 
     receivers:
+      k8sobjects:
+        objects:
+          - name: pods
+            mode: pull
+          - name: events
+            mode: watch
       k8s_cluster:
         collection_interval: 10s
         node_conditions_to_report:
@@ -152,3 +168,19 @@ spec:
           - memory
           - ephemeral-storage
           - storage
+
+    exporters:
+      debug:
+        verbosity: detailed # default is basic
+      otlphttp:
+        endpoint: http://prometheus-server.cluster.svc.cluster.local.:80/api/v1/otlp
+      elasticsearch:
+        endpoints:
+          - http://elasticsearch-es-http.cluster.svc.cluster.local.:9200
+        logs_index: ""
+        logs_dynamic_index:
+          enabled: true
+        logstash_format:
+          enabled: true
+        user: anyflow
+        password: mycluster

@@ -1,4 +1,10 @@
 server:
+  resources:
+    limits:
+      memory: 1Gi
+    requests:
+      memory: 1Gi
+
   extraFlags:
     - web.enable-lifecycle #default
     - web.enable-remote-write-receiver # allow remote write

@@ -1,22 +1,22 @@
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
-  name: kibana
+  name: elasticsearch
   namespace: cluster
 spec:
   parentRefs:
     - name: default-gateway
       namespace: cluster
   hostnames:
-    - kibana.anyflow.net
+    - elasticsearch.anyflow.net
   rules:
     - matches:
         - path:
             type: PathPrefix #Implementation-specific, PathPrefix, Exact
             value: /
       backendRefs:
-        - name: kibana-kb-http
-          port: 5601
+        - name: elasticsearch-es-http
+          port: 9200
     - filters:
         - type: RequestRedirect
           requestRedirect:

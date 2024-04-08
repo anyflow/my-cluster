@@ -183,16 +183,18 @@ eck-d:
 
 elasticsearch-c:
 	kubectl apply -f apps/eck/elasticsearch.yaml
+	kubectl apply -f apps/eck/elasticsearch.httproute.yaml
 elasticsearch-d:
+	kubectl delete -f apps/eck/elasticsearch.httproute.yaml
 	kubectl delete -f apps/eck/elasticsearch.yaml
 elasticsearch-password:
 	kubectl get secret elasticsearch-es-elastic-user -o go-template='{{.data.elastic | base64decode}}'
 
 kibana-c:
 	kubectl apply -f apps/eck/kibana.yaml || true
-	kubectl apply -f apps/eck/httproute.yaml
+	kubectl apply -f apps/eck/kibana.httproute.yaml
 kibana-d:
-	kubectl delete -f apps/eck/httproute.yaml
+	kubectl delete -f apps/eck/kibana.httproute.yaml
 	kubectl delete -f apps/eck/kibana.yaml
 kibana_objects:
 	curl -X POST "kibana.lgthinq.com.local/api/saved_objects/_import" -H "kbn-xsrf: true" --form file=@elasticsearch/dashboard.ndjson -H "kbn-xsrf: true"
@@ -232,6 +234,11 @@ otel-prometheus-c:
 	kubectl apply -f apps/otel/prometheus.yaml
 otel-prometheus-d:
 	kubectl delete -f apps/otel/prometheus.yaml
+
+otel-cluster-c:
+	kubectl apply -f apps/otel/cluster.yaml
+otel-cluster-d:
+	kubectl delete -f apps/otel/cluster.yaml
 
 
 # otel-prometheus-c:

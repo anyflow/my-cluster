@@ -3,16 +3,19 @@ adminPassword: admin
 
 labels:
   app: grafana
-  version: 6.59.4
+  version: 10.4.0
 
 podLabels:
   app: grafana
-  version: 6.59.4
+  version: 10.4.0
 
 service:
   labels:
     app: grafana
-    version: 6.59.4
+    version: 10.4.0
+
+env:
+  GF_FEATURE_TOGGLES_ENABLE: traceToMetrics
 
 ingress:
   enabled: false
@@ -35,6 +38,24 @@ datasources:
         url: http://prometheus-server.cluster.svc.cluster.local
         access: proxy
         isDefault: true
+      # - name: Elasticsearch-otel-cluster
+      #   type: elasticsearch
+      #   url: http://elasticsearch-es-http.cluster.svc.cluster.local.:9200
+      #   basicAuthUser: anyflow
+      #   basicAuthPassword: mycluster
+      #   access: proxy
+      #   basicAuth: true
+      #   isDefault: false
+      #   jsonData:
+      #     includeFrozen: false,
+      #     index: otel-k8sobject-*
+      #     logLevelField:
+      #     logMessageField:
+      #     maxConcurrentShardRequests: 5
+      #     oauthPassThru: false
+      #     sigV4Auth: false
+      #     timeField: "@timestamp"
+      #     tlsSkipVerify: true
 
 dashboardProviders:
   dashboardproviders.yaml:
