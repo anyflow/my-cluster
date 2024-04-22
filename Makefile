@@ -264,3 +264,11 @@ enlarge_open_file_count:
 	sudo sysctl -w fs.inotify.max_user_watches=2099999999
 	sudo sysctl -w fs.inotify.max_user_instances=2099999999
 	sudo sysctl -w fs.inotify.max_queued_events=2099999999
+
+
+staffonly-c:
+	kubectl apply -k apps/staffonly/deployment
+staffonly-d:
+	kubectl delete -k apps/staffonly/deployment
+staffonly-e:
+	kubectl exec -it -n cluster staffonly -- zsh
