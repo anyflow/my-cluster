@@ -1,0 +1,71 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: dockebi-test
+  namespace: cluster # [적용 대상 식별] cluster namespace에 한정하여 적용
+spec:
+  workloadSelector:
+    labels:
+      app: dockebi # [적용 대상 식별] app: dockeb인 workload에만 적용
+
+  configPatches:
+    # 하기 적용 후 filter chain: ... -> envoy.filters.http.fault -> envoy.filters.http.lua -> envoy.filters.http.router
+    - applyTo: HTTP_FILTER # [적용 위치 식별] HTTP_FILTER는 적용 위치가 http connection manager의 HTTP filter chain임을 나타냄
+      match:
+        context: SIDECAR_INBOUND # [적용 위치 식별] sidecar의 Inbound listener/route/cluster
+        listener: # ListenerMatch 사용
+          portNumber: 8080 # 8080 port의 Listener에만 적용. 없으면 모든 Listener에 적용됨.
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+              subFilter:
+                name: "envoy.filters.http.router"
+      patch:
+        operation: INSERT_BEFORE # match에 정의된 envoy.filters.http.router 앞에 하기 내용을 적용
+        value:
+          name: envoy.filters.http.fault # filter 이름
+          typed_config:
+            "@type": "type.googleapis.com/envoy.extensions.filters.http.fault.v3.HTTPFault" # HTTPFault type의 filter
+            max_active_faults: 100 # 최대 동시 fault(이 경우 delay) 적용 percentage
+            delay:
+              header_delay: {} # x-envoy-fault-delay-request header를 통한 delay 적용 시 필수
+              percentage:
+                numerator: 100 # delay가 적용될 traffic percentage
+
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          portNumber: 8080
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+              subFilter:
+                name: "envoy.filters.http.router"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.lua
+          typed_config:
+            "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua" # Lua type의 filter
+            defaultSourceCode: # Lua source code.
+              inlineString: |
+                function envoy_on_request(request_handle)
+                  headers = request_handle:headers()
+
+                  -- /mock path traffic 이외는 무시
+                  if headers:get(":path") ~= "/mock" then
+                    return
+                  end
+
+                  -- Info level로 logging.
+                  request_handle:logInfo("x-envoy-fault-delay-request: " .. headers:get("x-envoy-fault-delay-request"))
+
+                  -- Responsing. 1st param은 header, 2nd param은 body. :status는 status code를 나타냄.
+                  request_handle:respond({
+                      [":status"] = "200",
+                      ["content-type"] = "application/json",
+                      ["x-mock-header"] = "mock response header!"
+                    },
+                    "{\"message\": \"Delayed mock response works!\"}")
+                end
