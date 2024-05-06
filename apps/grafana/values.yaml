@@ -61,17 +61,24 @@ dashboardProviders:
   dashboardproviders.yaml:
     apiVersion: 1
     providers:
-      - name: default
+      - name: kubernetes
         orgId: 1
-        folder: default
+        folder: kubernetes
         type: file
         disableDeletion: false
         editable: true
         options:
-          path: /var/lib/grafana/dashboards/default
-
+          path: /var/lib/grafana/dashboards/kubernetes
+      - name: istio
+        orgId: 1
+        folder: istio
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/istio
 dashboards:
-  default:
+  kubernetes:
     kubernetes-views-global-dashboard:
       gnetId: 15757
       revision: 31
@@ -87,28 +94,4 @@ dashboards:
     kubernetes-views-pods-dashboard:
       gnetId: 15760
       revision: 22
-      datasource: Prometheus
-    istio-control-plane-dashboard:
-      gnetId: 7645
-      revision: 178
-      datasource: Prometheus
-    istio-mesh-dashboard:
-      gnetId: 7639
-      revision: 178
-      datasource: Prometheus
-    istio-performance-dashboard:
-      gnetId: 12153
-      revision: 178
-      datasource: Prometheus
-    istio-service-dashboard:
-      gnetId: 7636
-      revision: 178
-      datasource: Prometheus
-    istio-wasm-extension-dashboard:
-      gnetId: 13277
-      revision: 135
-      datasource: Prometheus
-    istio-workload-dashboard:
-      gnetId: 7630
-      revision: 178
       datasource: Prometheus
