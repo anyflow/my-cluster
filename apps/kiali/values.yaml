@@ -68,8 +68,6 @@ deployment:
     - "**"
   namespace: istio-system
   image_pull_policy: Always
-  pod_annotations:
-    sidecar.istio.io/inject: "false"
   pod_labels:
     sidecar.istio.io/inject: "false"
   replicas: 1

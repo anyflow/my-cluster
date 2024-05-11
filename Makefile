@@ -65,20 +65,18 @@ config-c:
 # 	kubectl wait pods -n ingress-nginx -l app.kubernetes.io/component=controller --for condition=Ready --timeout=300s
 
 
-port_forward:
-	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 80 -j ACCEPT
-	sudo iptables -t nat -A DOCKER -p tcp --dport 80 -j DNAT --to-destination 172.18.255.200:80
-	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 80 -j MASQUERADE
-
-	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 443 -j ACCEPT
-	sudo iptables -t nat -A DOCKER -p tcp --dport 443 -j DNAT --to-destination 172.18.255.200:443
-	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 443 -j MASQUERADE
-
-
 __create_dir:
 	test -d $$CREATE_DIR_TARGET || sudo mkdir $$CREATE_DIR_TARGET; \
 	sudo chown -R 1000:1000 $$CREATE_DIR_TARGET; \
 	sudo chmod -R 700 $$CREATE_DIR_TARGET
+
+
+staffonly-c:
+	kubectl apply -k apps/staffonly/deployment
+staffonly-d:
+	kubectl delete -k apps/staffonly/deployment
+staffonly-e:
+	kubectl exec -it -n cluster staffonly -- zsh
 
 
 docker_registry-c:
@@ -225,8 +223,17 @@ kafka_client-d:
 exec_kafka_client:
 	kubectl exec -it -n cluster kafka-client -- bash
 
+
+
+RELEASE_NAME := my-opentelemetry-operator
+RELEASE_NAMESPACE := opentelemetry-operator-system
 otel-c:
-	helm upgrade -i opentelemetry-operator open-telemetry/opentelemetry-operator -f apps/otel/operator.values.yaml
+	kubectl annotate crds instrumentations.opentelemetry.io opentelemetrycollectors.opentelemetry.io opampbridges.opentelemetry.io \
+		meta.helm.sh/release-name=${RELEASE_NAME} \
+		meta.helm.sh/release-namespace=${RELEASE_NAMESPACE} || true
+	kubectl label crds instrumentations.opentelemetry.io opentelemetrycollectors.opentelemetry.io opampbridges.opentelemetry.io app.kubernetes.io/managed-by=Helm || true
+
+	helm upgrade -i opentelemetry-operator open-telemetry/opentelemetry-operator -f apps/otel/values.yaml
 otel-d:
 	helm uninstall opentelemetry-operator
 
@@ -245,12 +252,11 @@ otel-otlp-c:
 otel-otlp-d:
 	kubectl delete -f apps/otel/otlp.yaml
 
+otel-node-c:
+	kubectl apply -f apps/otel/node.yaml
+otel-node-d:
+	kubectl delete -f apps/otel/node.yaml
 
-# otel-prometheus-c:
-# 	helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
-# 	helm upgrade -i -n cluster otel-prometheus open-telemetry/opentelemetry-collector -f apps/otel/prometheus.values.yaml
-# otel-prometheus-d:
-# 	helm uninstall otel-prometheus
 
 
 cert_manager-c:
@@ -270,10 +276,11 @@ enlarge_open_file_count:
 	sudo sysctl -w fs.inotify.max_user_instances=2099999999
 	sudo sysctl -w fs.inotify.max_queued_events=2099999999
 
+port_forward:
+	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 80 -j ACCEPT
+	sudo iptables -t nat -A DOCKER -p tcp --dport 80 -j DNAT --to-destination 172.18.255.200:80
+	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 80 -j MASQUERADE
 
-staffonly-c:
-	kubectl apply -k apps/staffonly/deployment
-staffonly-d:
-	kubectl delete -k apps/staffonly/deployment
-staffonly-e:
-	kubectl exec -it -n cluster staffonly -- zsh
+	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 443 -j ACCEPT
+	sudo iptables -t nat -A DOCKER -p tcp --dport 443 -j DNAT --to-destination 172.18.255.200:443
+	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 443 -j MASQUERADE

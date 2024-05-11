@@ -136,7 +136,7 @@ spec:
             - memory_limiter
             - batch
           exporters:
-            - otlp/prometheus
+            - otlphttp/prometheus
 
     receivers:
       k8sobjects:
@@ -160,12 +160,14 @@ spec:
       debug:
         verbosity: detailed # default is basic
 
-      otlp/prometheus:
-        endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp
+      otlphttp/prometheus:
+        metrics_endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp/v1/metrics
+        tls:
+          insecure: true
 
       elasticsearch:
         endpoints:
-          - http://elasticsearch-es-http.cluster.svc.cluster.local.:9200
+          - http://elasticsearch-es-http.cluster.svc.cluster.local:9200
         logs_index: ""
         logs_dynamic_index:
           enabled: true
