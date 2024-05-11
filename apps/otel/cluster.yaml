@@ -75,19 +75,6 @@ subjects:
     name: otel-cluster-collector
     namespace: cluster
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: otel-cluster-targetallocator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: otel-cluster
-subjects:
-  - kind: ServiceAccount
-    name: otel-cluster-targetallocator
-    namespace: cluster
----
 # otel-cluster-collector service accounts are created automatically
 apiVersion: opentelemetry.io/v1alpha1
 kind: OpenTelemetryCollector
@@ -95,7 +82,7 @@ metadata:
   name: otel-cluster
   namespace: cluster
   labels:
-    app: opentelemetry
+    app: otel-cluster-collector
 spec:
   mode: deployment
   replicas: 1
@@ -149,7 +136,7 @@ spec:
             - memory_limiter
             - batch
           exporters:
-            - otlphttp
+            - otlp/prometheus
 
     receivers:
       k8sobjects:
@@ -172,8 +159,10 @@ spec:
     exporters:
       debug:
         verbosity: detailed # default is basic
-      otlphttp:
-        endpoint: http://prometheus-server.cluster.svc.cluster.local.:80/api/v1/otlp
+
+      otlp/prometheus:
+        endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp
+
       elasticsearch:
         endpoints:
           - http://elasticsearch-es-http.cluster.svc.cluster.local.:9200

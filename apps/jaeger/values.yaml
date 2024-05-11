@@ -12,6 +12,9 @@ provisionDataStore:
   elasticsearch: false
   kafka: false
 
+storage:
+  type: memory
+
 allInOne:
   enabled: true
   samplingConfig: |-

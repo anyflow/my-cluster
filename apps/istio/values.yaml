@@ -2,8 +2,11 @@ pilot:
   traceSampling: 100 # sampling percentage for tracing.
   resources:
     requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
       cpu: 500m
-      memory: 2048Mi
+      memory: 1024Mi
 
 global:
   istioNamespace: istio-system
@@ -11,8 +14,8 @@ global:
   proxy:
     resources:
       requests:
-        cpu: 250m
-        memory: 64Mi
+        cpu: 10m
+        memory: 16Mi
       limits:
         cpu: 250m
         memory: 64Mi
@@ -20,11 +23,27 @@ global:
 meshConfig:
   defaultConfig:
     holdApplicationUntilProxyStarts: true
-    tracing:
-      zipkin:
-        address: jaeger-collector.istio-system.svc:9411 # jaeger collector address
+    tracing: {}
+    # zipkin:
+    #   address: jaeger-collector.istio-system.svc:9411 # jaeger collector address
     proxyMetadata:
       # Enable basic DNS proxying
       ISTIO_META_DNS_CAPTURE: "true"
       # Enable automatic address allocation, optional
       ISTIO_META_DNS_AUTO_ALLOCATE: "true"
+
+  defaultProviders:
+    metrics:
+      - prometheus # Should be defined when opentelemetry is defined
+    accessLogging:
+      - envoyFileAccessLog # Should be defined when opentelemetry is defined
+    tracing:
+      - opentelemetry
+
+  extensionProviders:
+    # - name: prometheus          # Should not be defined despite prometheus in defaultProviders is defined
+    # - name: envoyFileAccessLog  # Should not be defined despite envoyFileAccessLog in defaultProviders is defined
+    - name: opentelemetry
+      opentelemetry:
+        service: otel-otlp-collector.cluster.svc.cluster.local
+        port: 4317

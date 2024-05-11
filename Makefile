@@ -240,6 +240,11 @@ otel-cluster-c:
 otel-cluster-d:
 	kubectl delete -f apps/otel/cluster.yaml
 
+otel-otlp-c:
+	kubectl apply -f apps/otel/otlp.yaml
+otel-otlp-d:
+	kubectl delete -f apps/otel/otlp.yaml
+
 
 # otel-prometheus-c:
 # 	helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts

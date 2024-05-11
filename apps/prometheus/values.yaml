@@ -1,14 +1,17 @@
 server:
   resources:
-    limits:
-      memory: 1Gi
     requests:
+      cpu: 10m
+      memory: 10Mi
+    limits:
+      cpu: 1000m
       memory: 1Gi
 
   extraFlags:
     - web.enable-lifecycle #default
     - web.enable-remote-write-receiver # allow remote write
     - enable-feature=otlp-write-receiver # allow OTLP receiver
+    - enable-feature=exemplar-storage # allow exemplar storage
   extraArgs:
     log.level: debug
 

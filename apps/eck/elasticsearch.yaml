@@ -19,8 +19,8 @@ spec:
             - name: elasticsearch
               resources:
                 requests:
-                  memory: 1Gi
-                  cpu: 1
+                  cpu: 100m
+                  memory: 100Mi
                 limits:
-                  memory: 1Gi
-                  cpu: 8
+                  cpu: 1000m
+                  memory: 1000Mi

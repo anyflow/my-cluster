@@ -64,7 +64,7 @@ metadata:
   name: otel-prometheus
   namespace: cluster
   labels:
-    app: opentelemetry
+    app: otel-prometheus-collector
 spec:
   mode: statefulset
   targetAllocator:
@@ -88,7 +88,7 @@ spec:
 
     exporters:
       debug:
-        verbosity: detailed # default is basic
+        verbosity: basic # default is basic
       prometheus:
         endpoint: 0.0.0.0:9090
       # prometheusremotewrite: # for pushing metrics to prometheus instead of pulling of right above
@@ -100,7 +100,7 @@ spec:
 
       telemetry:
         logs:
-          level: DEBUG
+          level: INFO
         metrics:
           address: 0.0.0.0:8888
 
