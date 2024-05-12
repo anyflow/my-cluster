@@ -14,5 +14,6 @@
 
 PUT /_cluster/settings
 { "persistent": { "action.destructive_requires_name": false } }
-DELETE /otel-cluster-*
-GET /dockebi-2024.05.11/_search?size=100
+GET /dockebi-*/_search?size=100
+
+GET /istio-access-log-*/_search?size=100

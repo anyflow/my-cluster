@@ -6,8 +6,8 @@ metadata:
 spec:
   # accessLogging:
   #   - providers:
-  #       - name: opentelemetry
+  #       - name: otelLog
   tracing:
     - providers:
-        - name: opentelemetry
+        - name: otelTrace
       randomSamplingPercentage: 100

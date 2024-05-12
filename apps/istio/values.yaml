@@ -37,13 +37,19 @@ meshConfig:
       - prometheus # Should be defined when opentelemetry is defined
     accessLogging:
       - envoyFileAccessLog # Should be defined when opentelemetry is defined
+    # accessLogging:
+    #   - otelLog
     tracing:
-      - opentelemetry
+      - otelTrace
 
   extensionProviders:
     # - name: prometheus          # Should not be defined despite prometheus in defaultProviders is defined
     # - name: envoyFileAccessLog  # Should not be defined despite envoyFileAccessLog in defaultProviders is defined
-    - name: opentelemetry
+    - name: otelTrace
       opentelemetry:
         service: otel-otlp-collector.cluster.svc.cluster.local
         port: 4317
+    # - name: otelLog
+    #   envoyOtelAls:
+    #     service: otel-otlp-collector.cluster.svc.cluster.local
+    #     port: 4337
