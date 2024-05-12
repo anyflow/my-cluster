@@ -1,18 +1,13 @@
-# TODO identify necessary resources to replace *(wildcard)
 # otel-node-collector service accounts are created automatically
-# TODO handle the error to work hostmetrics: 2024-05-12T01:06:30.683Z        error   scraperhelper/scrapercontroller.go:197  Error scraping metrics  {"kind": "receiver", "name": "hostmetrics", "data_type": "metrics", "error": "error reading process executable for pid 1: readlink /hostfs/proc/1/exe: permission denied; error reading username for process \"systemd\" (pid 1): open /etc/passwd: no such file or directory;
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: otel-node-collector
 rules:
-  - apiGroups:
-      - "*"
-    resources:
-      - "*"
-    verbs:
-      - "*"
+  - apiGroups: [""]
+    resources: ["nodes/stats", "nodes/proxy"]
+    verbs: ["get", "watch", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -110,6 +105,7 @@ spec:
           - pod
           - container
           - volume
+
       # hostmetrics:
       #   collection_interval: 10s
       #   root_path: /hostfs
@@ -123,6 +119,13 @@ spec:
       #     paging:     # Paging/Swap space utilization and I/O metrics
       #     processes:  # Process count metrics
       #     process:    # Per process CPU, Memory, and Disk I/O metrics
+      #       # The following settings can be used to handle the error to work hostmetrics: 2024-05-12T01:06:30.683Z        error   scraperhelper/scrapercontroller.go:197  Error scraping metrics  {"kind": "receiver", "name": "hostmetrics", "data_type": "metrics", "error": "error reading process executable for pid 1: readlink /hostfs/proc/1/exe: permission denied; error reading username for process \"systemd\" (pid 1): open /etc/passwd: no such file or directory;
+      #       # refer: https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/28661
+      #       mute_process_name_error: true
+      #       mute_process_exe_error: true
+      #       mute_process_io_error: true
+      #       mute_process_user_error: true
+      #       mute_process_cgroup_error: true
 
     exporters:
       debug:
