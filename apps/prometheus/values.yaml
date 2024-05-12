@@ -1,4 +1,8 @@
 server:
+  podLabels:
+    app: prometheus
+    version: latest
+
   resources:
     requests:
       cpu: 10m
@@ -12,6 +16,7 @@ server:
     - web.enable-remote-write-receiver # allow remote write
     - enable-feature=otlp-write-receiver # allow OTLP receiver
     - enable-feature=exemplar-storage # allow exemplar storage
+
   extraArgs:
     log.level: debug
 
@@ -43,8 +48,7 @@ serverFiles:
         static_configs:
           - targets:
               - localhost:9090
-      - job_name: otel-prometheus-collector # only collect metrics from otel-collector
-        static_configs:
-          - targets:
-              - otel-prometheus-collector.cluster.svc.cluster.local.:9090
-              # - otel-prometheus-opentelemetry-collector.cluster:9090
+      # - job_name: otel-prometheus-collector # only collect metrics from otel-collector
+      #   static_configs:
+      #     - targets:
+      #         - otel-prometheus-collector.cluster.svc.cluster.local.:9090

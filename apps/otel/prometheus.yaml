@@ -89,8 +89,12 @@ spec:
     exporters:
       debug:
         verbosity: basic # default is basic
-      prometheus:
-        endpoint: 0.0.0.0:9090
+      otlphttp/prometheus:
+        metrics_endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp/v1/metrics
+        tls:
+          insecure: true
+      # prometheus:
+      #   endpoint: 0.0.0.0:9090
       # prometheusremotewrite: # for pushing metrics to prometheus instead of pulling of right above
       #   endpoint: "http://prometheus-server.cluster:80/api/v1/write"
 
@@ -113,7 +117,8 @@ spec:
             - batch
           exporters:
             - debug
-            - prometheus
+            - otlphttp/prometheus
+            # - prometheus
             # - prometheusremotewrite # for pushing metrics to prometheus instead of pulling of right above
 
     receivers:
