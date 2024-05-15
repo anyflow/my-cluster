@@ -17,27 +17,20 @@ config:
     inputs: |
         [INPUT]
             Name            tail
-            Path            /var/log/pods/cluster_krakend*/*/*.log
-            Tag             krakend
+            Path            /var/log/pods/cluster_dockebi-tick*/*/*.log
+            Tag             dockebi-tick
 
         [INPUT]
             Name            tail
-            Path            /var/log/pods/cluster_dockebi*/*/*.log
-            Tag             dockebi
+            Path            /var/log/pods/cluster_dockebi-tock*/*/*.log
+            Tag             dockebi-tock
+
+        [INPUT]
+            Name            tail
+            Path            /var/log/pods/cluster_dockebi-storage*/*/*.log
+            Tag             dockebi-storage
 
     filters: |
-        [FILTER]
-            Name            parser
-            Match           krakend
-            Key_Name        log
-            Parser          krakend_access
-
-        [FILTER]
-            Name            lua
-            Match           krakend
-            Script          /opt/bitnami/fluent-bit/conf/krakend.access.lua
-            Call            transform
-
         [FILTER]
             Name            parser
             Match           *
@@ -65,17 +58,17 @@ config:
 
         [OUTPUT]
             Name            es
-            Match           krakend
+            Match           dockebi-tick
             Host            elasticsearch-es-http.cluster
             Port            9200
-            Index           krakend
+            Index           dockebi-tick
             HTTP_User       anyflow
             HTTP_Passwd     mycluster
             tls             Off
             tls.verify      Off
             Suppress_Type_Name On
             Logstash_Format On
-            Logstash_Prefix krakend
+            Logstash_Prefix dockebi-tick
             Time_Key        timestamp
             Replace_Dots    On
             Current_Time_Index On
@@ -84,17 +77,36 @@ config:
 
         [OUTPUT]
             Name            es
-            Match           dockebi
+            Match           dockebi-tock
             Host            elasticsearch-es-http.cluster
             Port            9200
-            Index           dockebi
+            Index           dockebi-tock
             HTTP_User       anyflow
             HTTP_Passwd     mycluster
             tls             Off
             tls.verify      Off
             Suppress_Type_Name On
             Logstash_Format On
-            Logstash_Prefix dockebi
+            Logstash_Prefix dockebi-tock
+            Time_Key        timestamp
+            Replace_Dots    On
+            Current_Time_Index On
+            Trace_Output    On
+            Trace_Error     On
+
+        [OUTPUT]
+            Name            es
+            Match           dockebi-storage
+            Host            elasticsearch-es-http.cluster
+            Port            9200
+            Index           dockebi-storage
+            HTTP_User       anyflow
+            HTTP_Passwd     mycluster
+            tls             Off
+            tls.verify      Off
+            Suppress_Type_Name On
+            Logstash_Format On
+            Logstash_Prefix dockebi-storage
             Time_Key        timestamp
             Replace_Dots    On
             Current_Time_Index On
@@ -102,12 +114,6 @@ config:
             Trace_Error     On
 
     customParsers: |
-        [PARSER]
-            Name            krakend_access
-            Format          regex
-            Regex           ^\s*(?<timestamp>[^ ]+) (?:stdout|stderr) (?:\w+) +(?:\d{4}\/\d{2}\/\d{2}) - (?:\d{2}:\d{2}:\d{2}\.\d+) \[(?:\w+)\] \| *(?<statusCode>\d{3}) \| *(?<duration>[\d\.]+)(?<durationUnit>ms|µs|s) \| *(?<clientIp>\d+\.\d+\.\d+\.\d+) \| (?<method>\w+)\s+(?<path>.+)$
-            Time_Key        timestamp
-
         [PARSER]
             Name            general
             Format          regex
@@ -120,44 +126,6 @@ config:
             Time_Key        timestamp
 
     extraFiles:
-        krakend.access.lua: |
-            function transform(tag, timestamp, record)
-                if record["statusCode"] == nil then -- Leave if the record is not access log.
-                    return 0, timestamp, record
-                end
-
-                timestamp = record["timestamp"]
-
-                local responseTimeMs = tonumber(record["duration"])
-                if record["durationUnit"] ~= nil and record["duration"] ~= nil then
-                    if record["durationUnit"] == "s" then
-                        responseTimeMs = responseTimeMs * 1000
-                    elseif record["durationUnit"] == "µs" then
-                        responseTimeMs = responseTimeMs / 1000
-                    end
-                end
-
-                return 1, nil, {
-                    ["version"] = "1.0",
-                    ["timestamp"] = timestamp,
-                    ["level"] = "INFO",
-                    ["metadata"] = {
-                        ["app"] = "apigw",
-                        ["type"] = "httpResponse",
-                        ["operationId"] = record["path"] .. "|" .. record["method"],
-                        ["clientIp"] = record["clientIp"]
-                    },
-                    ["message"] = {
-                        ["obj"] = {
-                            ["statusCode"] = tonumber(record["statusCode"]),
-                            ["responseTimeMs"] = responseTimeMs,
-                            ["path"] = record["path"],
-                            ["method"] = record["method"]
-                        }
-                    }
-                }
-            end
-
         general.lua: |
             function transform(tag, timestamp, record)
                 if record["version"] ~= nil then -- Processed successfully in krakend.access.lua
@@ -198,9 +166,6 @@ config:
             end
 
 extraVolumeMounts:
-    - name: config
-      mountPath: /opt/bitnami/fluent-bit/conf/krakend.access.lua
-      subPath: krakend.access.lua
     - name: config
       mountPath: /opt/bitnami/fluent-bit/conf/general.lua
       subPath: general.lua

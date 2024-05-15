@@ -41,6 +41,7 @@ istio-c:
 istio-d:
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-base -n istio-system
+istio-r: istio-d istio-c
 
 
 config-c:
@@ -135,7 +136,7 @@ jaeger-c:
 jaeger-d:
 	helm uninstall jaeger -n istio-system
 	kubectl delete -f ./apps/jaeger/httproute.yaml
-
+jaeger-r: jaeger-d jaeger-c
 
 kiali-c:
 	helm upgrade -i kiali kiali/kiali-server -n istio-system -f ./apps/kiali/values.yaml --version 1.76
@@ -251,6 +252,7 @@ otel-otlp-c:
 	kubectl apply -f apps/otel/otlp.yaml
 otel-otlp-d:
 	kubectl delete -f apps/otel/otlp.yaml
+otel-otlp-r: otel-otlp-d otel-otlp-c
 
 otel-node-c:
 	kubectl apply -f apps/otel/node.yaml

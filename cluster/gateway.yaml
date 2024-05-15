@@ -3,6 +3,9 @@ kind: Gateway
 metadata:
   name: default-gateway
   namespace: cluster
+  labels:
+    app: gateway
+    version: latest
 spec:
   gatewayClassName: istio
   addresses:

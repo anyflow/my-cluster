@@ -11,7 +11,7 @@ spec:
   # replicas: 1
   autoscaler:
     minReplicas: 1
-    maxReplicas: 1
+    maxReplicas: 2
   resources:
     # requests:
     #   cpu: 10m
@@ -49,7 +49,7 @@ spec:
       pipelines:
         traces:
           receivers:
-            - otlp/jaeger
+            - otlp
           processors:
             - memory_limiter
             - batch
@@ -59,7 +59,7 @@ spec:
 
         logs:
           receivers:
-            - otlp/elasticsearch
+            - otlp
           processors:
             - memory_limiter
             - batch
@@ -69,7 +69,7 @@ spec:
 
         metrics:
           receivers:
-            - otlp/prometheus
+            - otlp
           processors:
             - memory_limiter
             - batch
@@ -78,26 +78,12 @@ spec:
             - otlphttp/prometheus
 
     receivers:
-      otlp/jaeger:
+      otlp:
         protocols:
           grpc:
             endpoint: 0.0.0.0:4317
           http:
             endpoint: 0.0.0.0:4318
-
-      otlp/prometheus:
-        protocols:
-          grpc:
-            endpoint: 0.0.0.0:4327
-          http:
-            endpoint: 0.0.0.0:4328
-
-      otlp/elasticsearch:
-        protocols:
-          grpc:
-            endpoint: 0.0.0.0:4337
-          http:
-            endpoint: 0.0.0.0:4338
 
     exporters:
       debug:

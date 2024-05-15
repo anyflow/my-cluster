@@ -32,16 +32,6 @@ meshConfig:
       # Enable automatic address allocation, optional
       ISTIO_META_DNS_AUTO_ALLOCATE: "true"
 
-  defaultProviders:
-    metrics:
-      - prometheus # Should be defined when opentelemetry is defined
-    accessLogging:
-      - envoyFileAccessLog # Should be defined when opentelemetry is defined
-    # accessLogging:
-    #   - otelLog
-    tracing:
-      - otelTrace
-
   extensionProviders:
     # - name: prometheus          # Should not be defined despite prometheus in defaultProviders is defined
     # - name: envoyFileAccessLog  # Should not be defined despite envoyFileAccessLog in defaultProviders is defined
