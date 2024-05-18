@@ -46,20 +46,20 @@ istio-r: istio-d istio-c
 
 config-c:
 # create namespace
-	kubectl create ns cluster
+	kubectl create ns cluster || true
 # set default namespace
-	kubectl config set-context --current --namespace=cluster
+	kubectl config set-context --current --namespace=cluster || true
 # install default tls secret
-	kubectl create secret tls default-tls -n cluster --cert=./cert/fullchain.pem --key=./cert/privkey.pem
+	kubectl create secret tls default-tls -n cluster --cert=./cert/fullchain.pem --key=./cert/privkey.pem || true
 # set istio injection
-	kubectl label namespace cluster istio-injection=enabled
+	kubectl label namespace cluster istio-injection=enabled || true
 # set metallb config
-	kubectl apply -f ./cluster/metallb-config.yaml
+	kubectl apply -f ./cluster/metallb-config.yaml || true
 # install gateway
 	@if ! kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; then \
-		kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.0.0" | kubectl apply -f -; \
+		kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.1.0" | kubectl apply -f -; \
 	fi
-	kubectl apply -f ./cluster/gateway.yaml
+	kubectl apply -f ./cluster/gateway.yaml || true
 # install ingress
 # 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 # 	@echo "Waiting maximum 300s for ingress controller to be ready ..."
