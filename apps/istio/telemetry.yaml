@@ -4,9 +4,10 @@ metadata:
   name: mesh-default
   namespace: istio-system
 spec:
-  # accessLogging:
-  #   - providers:
-  #       - name: otelLog
+  accessLogging:
+    - providers:
+        - name: envoy
+        - name: otelLog
   tracing:
     - providers:
         - name: otelTrace

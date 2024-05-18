@@ -33,13 +33,11 @@ meshConfig:
       ISTIO_META_DNS_AUTO_ALLOCATE: "true"
 
   extensionProviders:
-    # - name: prometheus          # Should not be defined despite prometheus in defaultProviders is defined
-    # - name: envoyFileAccessLog  # Should not be defined despite envoyFileAccessLog in defaultProviders is defined
     - name: otelTrace
       opentelemetry:
         service: otel-otlp-collector.cluster.svc.cluster.local
         port: 4317
-    # - name: otelLog
-    #   envoyOtelAls:
-    #     service: otel-otlp-collector.cluster.svc.cluster.local
-    #     port: 4337
+    - name: otelLog
+      envoyOtelAls:
+        service: otel-otlp-collector.cluster.svc.cluster.local
+        port: 4317
