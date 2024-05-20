@@ -21,7 +21,9 @@ global:
         memory: 64Mi
 
 meshConfig:
-  defaultConfig:
+  enableTracing: true
+
+  defaultConfig: # ProxyConfig.
     holdApplicationUntilProxyStarts: true
     tracing: {}
     # zipkin:
@@ -41,3 +43,7 @@ meshConfig:
       envoyOtelAls:
         service: otel-otlp-collector.cluster.svc.cluster.local
         port: 4317
+        logFormat: # https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig-ExtensionProvider-EnvoyOpenTelemetryLogProvider-LogFormat
+          labels: # https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#config-access-log-format-dictionaries
+            status: "%RESPONSE_CODE%"
+            Body: "%LOCAL_REPLY_BODY%"

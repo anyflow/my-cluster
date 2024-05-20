@@ -36,8 +36,8 @@ helm_repo-c:
 
 istio-c:
 	kubectl create ns istio-system || true
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=default
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.0
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.0
 istio-d:
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-base -n istio-system
