@@ -22,6 +22,8 @@ global:
 
 meshConfig:
   enableTracing: true
+  # outboundTrafficPolicy:
+  #   mode: REGISTRY_ONLY
 
   defaultConfig: # ProxyConfig.
     holdApplicationUntilProxyStarts: true

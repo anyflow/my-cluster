@@ -76,7 +76,7 @@ subjects:
     namespace: cluster
 ---
 # otel-cluster-collector service accounts are created automatically
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: otel-cluster
@@ -89,7 +89,7 @@ spec:
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8888"
-  config: |
+  config:
     extensions:
       health_check: # for k8s liveness and readiness probes
         endpoint: 0.0.0.0:13133 # default

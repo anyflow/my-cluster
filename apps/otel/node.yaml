@@ -22,7 +22,7 @@ subjects:
     name: otel-node-collector
     namespace: cluster
 ---
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: otel-node
@@ -55,7 +55,7 @@ spec:
   #     mountPath: /hostfs
   #     readOnly: true
   #     mountPropagation: HostToContainer
-  config: |
+  config:
     extensions:
       health_check: # for k8s liveness and readiness probes
         endpoint: 0.0.0.0:13133 # default

@@ -58,7 +58,7 @@ subjects:
     namespace: cluster
 ---
 # otel-prometheus-collector, otel-prometheus-targetallocator service accounts are created automatically
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: otel-prometheus
@@ -72,7 +72,7 @@ spec:
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8888"
-  config: |
+  config:
     extensions:
       health_check: # for k8s liveness and readiness probes
         endpoint: 0.0.0.0:13133 # default
@@ -125,11 +125,11 @@ spec:
       prometheus:
         config:
           scrape_configs:
-            - job_name: 'otel-collector'
+            - job_name: "otel-collector"
               scrape_interval: 10s
               static_configs:
-              - targets:
-                  - 0.0.0.0:8888
+                - targets:
+                    - 0.0.0.0:8888
             # A scrape configuration for running Prometheus on a Kubernetes cluster.
             # This uses separate scrape configs for cluster components (i.e. API server, node)
             # and services to allow each to use different authentication configs.
@@ -292,7 +292,9 @@ spec:
                   action: keep
                   regex: true
                 - source_labels:
-                    [__meta_kubernetes_service_annotation_prometheus_io_scrape_slow]
+                    [
+                      __meta_kubernetes_service_annotation_prometheus_io_scrape_slow,
+                    ]
                   action: drop
                   regex: true
                 - source_labels:
@@ -354,7 +356,9 @@ spec:
 
               relabel_configs:
                 - source_labels:
-                    [__meta_kubernetes_service_annotation_prometheus_io_scrape_slow]
+                    [
+                      __meta_kubernetes_service_annotation_prometheus_io_scrape_slow,
+                    ]
                   action: keep
                   regex: true
                 - source_labels:
@@ -468,7 +472,8 @@ spec:
                   action: replace
                   regex: (https?)
                   target_label: __scheme__
-                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                - source_labels:
+                    [__meta_kubernetes_pod_annotation_prometheus_io_path]
                   action: replace
                   target_label: __metrics_path__
                   regex: (.+)
@@ -538,7 +543,8 @@ spec:
                   action: replace
                   regex: (https?)
                   target_label: __scheme__
-                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                - source_labels:
+                    [__meta_kubernetes_pod_annotation_prometheus_io_path]
                   action: replace
                   target_label: __metrics_path__
                   regex: (.+)
