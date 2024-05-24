@@ -229,12 +229,12 @@ exec_kafka_client:
 RELEASE_NAME := my-opentelemetry-operator
 RELEASE_NAMESPACE := opentelemetry-operator-system
 otel-c:
+	helm upgrade -i opentelemetry-operator open-telemetry/opentelemetry-operator \
+		--set "manager.collectorImage.repository=otel/opentelemetry-collector-k8s" -f apps/otel/values.yaml
 	kubectl annotate crds instrumentations.opentelemetry.io opentelemetrycollectors.opentelemetry.io opampbridges.opentelemetry.io \
 		meta.helm.sh/release-name=${RELEASE_NAME} \
 		meta.helm.sh/release-namespace=${RELEASE_NAMESPACE} || true
-	kubectl label crds instrumentations.opentelemetry.io opentelemetrycollectors.opentelemetry.io opampbridges.opentelemetry.io app.kubernetes.io/managed-by=Helm || true
-
-	helm upgrade -i opentelemetry-operator open-telemetry/opentelemetry-operator -f apps/otel/values.yaml
+	kubectl label crds instrumentations.opentelemetry.io opentelemetrycollectors.opentelemetry.io opampbridges.opentelemetry.io app.kubernetes.io/managed-by=Helm
 otel-d:
 	helm uninstall opentelemetry-operator
 

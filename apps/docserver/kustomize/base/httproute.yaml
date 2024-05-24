@@ -19,7 +19,7 @@ spec:
           requestRedirect:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: /contents/apispec/openapi/prod
+              replacePrefixMatch: /contents/apispec
             statusCode: 302
     - matches:
         - path:
@@ -30,7 +30,7 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /contents/apispec/media/swaggerui/index.html
+              replaceFullPath: /contents/apispec/swaggerui/index.html
             statusCode: 302
     - matches:
         - path:
@@ -41,7 +41,7 @@ spec:
           requestRedirect:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: /contents/apispec/media/swaggerui
+              replacePrefixMatch: /contents/apispec/swaggerui
             statusCode: 302
     - matches:
         - path:
@@ -52,7 +52,7 @@ spec:
           requestRedirect:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: /contents/apispec/media/swaggerui
+              replacePrefixMatch: /contents/apispec/swaggerui
             statusCode: 302
     - matches:
         - path:
@@ -63,7 +63,7 @@ spec:
           requestRedirect:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: /contents/apispec/media/redoc
+              replacePrefixMatch: /contents/apispec/redoc
             statusCode: 302
     - matches:
         - path:

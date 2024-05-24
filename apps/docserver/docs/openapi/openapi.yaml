@@ -1,0 +1,343 @@
+openapi: 3.0.3
+info:
+  title: "Dockebi(한글명 : 도깨비) service"
+  description: |
+    A service for arbitrary testing
+  version: latest
+servers:
+  - url: https://api.anyflow.net/dockebi
+tags:
+  - name: stuff
+    description: |
+      **A resource for arbitrary testing**
+      - CRUD+LIST REST API test
+      - OpenAPI Spec test
+      - Logging format test
+      - KrakenD configuration field test
+      - Manifest generator sanity test
+      - Integration testing kit test
+      - Service Mesh test
+  - name: error
+    description: A resource for testing error handling
+  - name: system
+    description: A resource for dockebi internal usage
+
+paths:
+  /v1/stuff:
+    parameters:
+      - $ref: "#/components/parameters/XColor"
+      - $ref: "#/components/parameters/XStorage"
+    get:
+      summary: List all stuffs or search stuffs by name
+      x-openapi-router-controller: api.stuff
+      operationId: search
+      parameters:
+        - description: stuff name
+          explode: true
+          in: query
+          name: name
+          required: false
+          schema:
+            example: stuff_name_#1
+            type: string
+          style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  resultCode:
+                    type: string
+                    example: "0000"
+                  result:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Stuff"
+          description: Processed successfully
+        "400":
+          $ref: "#/components/responses/Error400"
+        "500":
+          $ref: "#/components/responses/Error500"
+      tags:
+        - stuff
+      x-krakend:
+        input_headers: ["*"]
+        output_encoding: json
+        backend:
+          - host:
+              - dockebi.cluster.svc.cluster.local:8080
+            url_pattern: /v1/stuff
+            method: GET
+            encoding: json
+            extra_config:
+              "@test_extra_config": extra_config_in_backend
+        extra_config:
+          "@test_extra_config": extra_config_in_endpoint
+          auth/api-keys:
+            roles:
+              - testRole
+            client_max_rate: 10
+    post:
+      summary: Create a stuff
+      x-openapi-router-controller: api.stuff
+      operationId: post
+      parameters:
+        - $ref: "#/components/parameters/XDummyHeader"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Stuff"
+        required: true
+        x-body-name: stuff
+      responses:
+        "200":
+          description: Processed successfully
+          content:
+            application/json:
+              schema:
+                properties:
+                  resultCode:
+                    type: string
+                    example: "0000"
+                  result:
+                    type: object
+                    properties:
+                      id_:
+                        type: string
+                        description: Created stuff ID
+                        example: 3250ef52-b0d9-4167-8d56-a7d7a5525bb4
+        "400":
+          $ref: "#/components/responses/Error400"
+        "500":
+          $ref: "#/components/responses/Error500"
+      tags:
+        - stuff
+
+  /v1/stuff/{id_}:
+    parameters:
+      - $ref: "#/components/parameters/XColor"
+      - $ref: "#/components/parameters/XStorage"
+    put:
+      summary: Update a stuff by id_
+      x-openapi-router-controller: api.stuff
+      operationId: put
+      parameters:
+        - $ref: "#/components/parameters/PathStuffId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Stuff"
+        required: true
+        x-body-name: stuff
+      responses:
+        "200":
+          description: Processed successfully
+          content:
+            application/json:
+              schema:
+                properties:
+                  resultCode:
+                    type: string
+                    example: "0000"
+                  result:
+                    type: object
+                    properties:
+                      id_:
+                        type: string
+                        description: Updated stuff ID
+                        example: 3250ef52-b0d9-4167-8d56-a7d7a5525bb4
+        "400":
+          $ref: "#/components/responses/Error400"
+        "500":
+          $ref: "#/components/responses/Error500"
+      tags:
+        - stuff
+    delete:
+      summary: Delete a stuff by id_
+      x-openapi-router-controller: api.stuff
+      operationId: delete
+      parameters:
+        - $ref: "#/components/parameters/PathStuffId"
+      responses:
+        "200":
+          description: Processed successfully
+          content:
+            application/json:
+              schema:
+                properties:
+                  resultCode:
+                    type: string
+                    example: "0000"
+                  result:
+                    type: object
+                    properties:
+                      id_:
+                        type: string
+                        description: Deleted stuff ID
+                        example: 3250ef52-b0d9-4167-8d56-a7d7a5525bb4
+        "400":
+          $ref: "#/components/responses/Error400"
+        "500":
+          $ref: "#/components/responses/Error500"
+      tags:
+        - stuff
+    get:
+      summary: Get a stuff by id_
+      x-openapi-router-controller: api.stuff
+      operationId: get
+      parameters:
+        - $ref: "#/components/parameters/PathStuffId"
+      responses:
+        "200":
+          description: Processed successfully
+          content:
+            application/json:
+              schema:
+                properties:
+                  resultCode:
+                    type: string
+                    example: "0000"
+                  result:
+                    type: object
+                    $ref: "#/components/schemas/Stuff"
+        "400":
+          $ref: "#/components/responses/Error400"
+        "500":
+          $ref: "#/components/responses/Error500"
+      tags:
+        - stuff
+
+  /v1/error/400:
+    get:
+      summary: Raise status code 400 error
+      x-openapi-router-controller: api.error
+      operationId: raise_400
+      parameters:
+        - $ref: "#/components/parameters/XColor"
+      tags:
+        - error
+      responses:
+        "400":
+          $ref: "#/components/responses/Error400"
+  /v1/error/500:
+    get:
+      summary: Raise status code 500 error
+      x-openapi-router-controller: api.error
+      operationId: raise_500
+      parameters:
+        - $ref: "#/components/parameters/XColor"
+      tags:
+        - error
+      responses:
+        "500":
+          $ref: "#/components/responses/Error500"
+
+  /v1/health:
+    get:
+      summary: Just return status 200, health checking
+      x-openapi-router-controller: api.system
+      operationId: health
+      parameters:
+        - $ref: "#/components/parameters/XColor"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  resultCode:
+                    type: string
+                    example: "0000"
+                  result:
+                    type: object
+          description: Processed successfully
+      tags:
+        - system
+
+components:
+  responses:
+    Error400:
+      description: Invalid input parameter
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Error500:
+      description: Error due to server
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  parameters:
+    XColor:
+      name: X-Color
+      in: header
+      description: Deployment target to request - blue or green or both. Default is both.
+      schema:
+        type: string
+        enum:
+          - both
+          - blue
+          - green
+        example: both
+    XStorage:
+      name: X-Storage
+      in: header
+      description: Storage type to request. Default is external. 'external' is ignored if no external storage is set.
+      schema:
+        type: string
+        enum:
+          - internal
+          - external
+        example: external
+    PathStuffId:
+      description: ID of the stuff
+      in: path
+      name: id_
+      required: true
+      schema:
+        example: 70edc9fe-1692-41e4-abcb-58a2274c4b83
+        type: string
+    XDummyHeader:
+      name: X-Dummy-Header
+      in: header
+      schema:
+        type: string
+      example: some_dummy_header
+  schemas:
+    Error:
+      description: Error
+      type: object
+      example:
+        resultCode: "9999"
+        result:
+        reason: XXX Error
+      properties:
+        resultCode:
+          type: string
+        result:
+          type: string
+        reason:
+          type: string
+    Stuff:
+      description: stuff information
+      type: object
+      example:
+        id_: 3250ef52-b0d9-4167-8d56-a7d7a5525bb4
+        name: stuff_name_#1
+        data:
+          key: value
+      properties:
+        id_:
+          example: 3250ef52-b0d9-4167-8d56-a7d7a5525bb4
+          type: string
+        name:
+          example: stuff_name_#1
+          type: string
+        data:
+          example:
+            key: value
+          type: object
