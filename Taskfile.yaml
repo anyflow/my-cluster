@@ -1,0 +1,19 @@
+version: "3"
+
+tasks:
+  __kustomize:
+    internal: true
+    cmds:
+      - kubectl {{.CLI_ARGS}} -k {{.TARGET}}
+
+  dockebi:
+    cmds:
+      - task: __kustomize
+        vars:
+          TARGET: apps/dockebi/deployment/overlays/prod
+
+  docserver:
+    cmds:
+      - task: __kustomize
+        vars:
+          TARGET: apps/docserver/deployment/overlays/prod

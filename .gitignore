@@ -21,3 +21,4 @@
 .venv
 .flake8
 .pyproject.yaml
+.task

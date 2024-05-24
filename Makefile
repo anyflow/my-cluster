@@ -95,9 +95,9 @@ docker_registry-d:
 
 
 docserver-c:
-	kubectl apply -k ./apps/docserver/kustomize/overlays/prod
+	kubectl apply -k ./apps/docserver/deployment/overlays/prod
 docserver-d:
-	kubectl delete -k ./apps/docserver/kustomize/overlays/prod
+	kubectl delete -k ./apps/docserver/deployment/overlays/prod
 docserver-r: docserver-d docserver-c
 
 
