@@ -3,7 +3,8 @@
 ## Chart Repository
 
 - <https://kiali.org/helm-charts>
-- **README.md** : <https://github.com/kiali/helm-charts>
+- **README.md**: <https://github.com/kiali/helm-charts>
+- **CR Reference**: <https://kiali.io/docs/configuration/kialis.kiali.io/#.spec.server.observability.tracing.otel>
 
 ## ArgoCD application manifest (for `kic-st`)
 

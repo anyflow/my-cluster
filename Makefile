@@ -36,6 +36,7 @@ helm_repo-c:
 
 istio-c:
 	kubectl create ns istio-system || true
+	kubectl label namespace istio-system istio-injection=enabled || true
 	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.0
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.0
 istio-d:
@@ -131,19 +132,22 @@ grafana-d:
 
 
 jaeger-c:
-	helm upgrade -i jaeger jaeger/jaeger -n istio-system -f ./apps/jaeger/values.yaml
-	@sed 's/jaeger.anyflow.net/${DOMAIN_JAEGER}/' ./apps/jaeger/httproute.yaml | kubectl apply -f -
+	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.0.8
+	kubectl apply -f ./apps/jaeger/httproute.yaml
 jaeger-d:
 	helm uninstall jaeger -n istio-system
 	kubectl delete -f ./apps/jaeger/httproute.yaml
 jaeger-r: jaeger-d jaeger-c
 
 kiali-c:
-	helm upgrade -i kiali kiali/kiali-server -n istio-system -f ./apps/kiali/values.yaml --version 1.76
-	@sed 's/kiali.anyflow.net/${DOMAIN_KIALI}/' ./apps/kiali/httproute.yaml | kubectl apply -f -
+	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 1.84
+	kubectl apply -f apps/kiali/kiali.yaml
+	kubectl apply -f apps/kiali/httproute.yaml
 kiali-d:
-	helm uninstall kiali -n istio-system
-	kubectl delete -f ./apps/kiali/httproute.yaml
+	kubectl delete -f apps/kiali/httproute.yaml
+	kubectl delete -f apps/kiali/kiali.yaml
+	helm uninstall kiali-operator -n istio-system
+
 
 
 argocd-c:

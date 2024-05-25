@@ -31,16 +31,3 @@ allInOne:
     requests:
       cpu: 256m
       memory: 128Mi
-  # ingress:
-  #   enabled: true
-  #   hosts:
-  #     - jaeger.anyflow.net
-  #   annotations:
-  #     kubernetes.io/ingress.class: nginx
-  #     kubernetes.io/tls-acme: "true"
-  #   labels:
-  #     app: jaeger
-  #   tls:
-  #     - secretName: default-tls
-  #       hosts:
-  #         - jaeger.anyflow.net
