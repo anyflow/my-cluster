@@ -75,7 +75,7 @@ spec:
     namespace: istio-system
     image_pull_policy: Always
     pod_labels:
-      sidecar.istio.io/inject: "false"
+      sidecar.istio.io/inject: "true"
     replicas: 1
     resources:
       requests:
