@@ -1,8 +1,14 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: docserver
+  namespace: service
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: docserver
-  namespace: cluster
+  namespace: service
 spec:
   selector:
     matchLabels:
@@ -15,6 +21,8 @@ spec:
         app: docserver
         version: latest
     spec:
+      serviceAccountName: docserver
+      securityContext: {}
       containers:
         - image: docker-registry.anyflow.net/docserver:latest
           imagePullPolicy: Always
