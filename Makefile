@@ -2,7 +2,7 @@ include .env
 
 export
 
-initialize: cluster-c metallb-c helm_repo-c istio-c config-c port_forward enlarge_open_file_count
+initialize: cluster-c metallb-c helm_repo-c namespace-c istio-c config-c port_forward enlarge_open_file_count
 
 
 cluster-c:
@@ -46,25 +46,30 @@ helm_repo-c:
 	helm repo add phntom https://phntom.kix.co.il/charts/
 	helm repo update
 
+namespace-c:
+	kubectl apply -f ./cluster/namespaces.yaml
+namespace-d:
+	kubectl delete -f ./cluster/namespaces.yaml
+
 istio-c:
-	kubectl create ns istio-system || true
-	kubectl label namespace istio-system istio-injection=enabled || true
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.0
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.0
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.1 --wait
+	helm upgrade -i istio-cni istio/cni -n istio-system --set profile=ambient --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.1 --set profile=ambient --wait
+	helm upgrade -i ztunnel istio/ztunnel -n istio-system --wait
+
 istio-d:
+	helm uninstall ztunnel -n istio-system
 	helm uninstall istiod -n istio-system
+	helm uninstall istio-cni -n istio-system
 	helm uninstall istio-base -n istio-system
+
 istio-r: istio-d istio-c
 
 config-c:
-# create namespace
-	kubectl create ns cluster || true
 # set default namespace
 	kubectl config set-context --current --namespace=cluster || true
 # install default tls secret
 	kubectl create secret tls default-tls -n cluster --cert=./cert/fullchain.pem --key=./cert/privkey.pem || true
-# set istio injection
-	kubectl label namespace cluster istio-injection=enabled || true
 # set metallb config
 	kubectl apply -f ./cluster/metallb-config.yaml || true
 # install gateway
@@ -157,7 +162,6 @@ kiali-d:
 
 eck-c:
 	kubectl create ns elastic-system || true
-	kubectl label namespace elastic-system istio-injection=enabled || true
 	kubectl create -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml || true
 	kubectl apply -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml || true
 eck-d:
@@ -220,7 +224,6 @@ otel-node-d:
 
 cert_manager-c:
 	kubectl create ns cert-manager || true
-	kubectl label namespace cert-manager istio-injection=enabled || true
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
 
 cert_manager-d:

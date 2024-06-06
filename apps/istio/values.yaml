@@ -11,14 +11,14 @@ pilot:
 global:
   istioNamespace: istio-system
 
-  proxy:
-    resources:
-      requests:
-        cpu: 10m
-        memory: 16Mi
-      limits:
-        cpu: 250m
-        memory: 64Mi
+  # proxy:
+  #   resources:
+  #     requests:
+  #       cpu: 10m
+  #       memory: 16Mi
+  #     limits:
+  #       cpu: 250m
+  #       memory: 64Mi
 
 meshConfig:
   enableTracing: true

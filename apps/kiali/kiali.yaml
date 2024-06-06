@@ -74,8 +74,6 @@ spec:
     view_only_mode: false
     namespace: istio-system
     image_pull_policy: Always
-    pod_labels:
-      sidecar.istio.io/inject: "true"
     replicas: 1
     resources:
       requests:

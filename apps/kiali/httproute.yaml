@@ -5,7 +5,7 @@ metadata:
   namespace: istio-system
 spec:
   parentRefs:
-    - name: default-gateway
+    - name: gateway
       namespace: cluster
   hostnames:
     - kiali.anyflow.net
