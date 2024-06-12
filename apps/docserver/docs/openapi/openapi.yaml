@@ -41,6 +41,12 @@ paths:
             example: stuff_name_#1
             type: string
           style: form
+        - name: X-Latency
+          in: header
+          description: Latency enforced in seconds. The default value is 0.
+          schema:
+            type: string
+            example: 0.0
       responses:
         "200":
           content:

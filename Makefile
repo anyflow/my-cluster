@@ -87,7 +87,7 @@ staffonly-c:
 staffonly-d:
 	kubectl delete -k apps/staffonly/deployment
 staffonly-e:
-	kubectl exec -it -n cluster staffonly -- zsh
+	kubectl exec -it -n service staffonly -- zsh
 
 __create_dir:
 	test -d $$CREATE_DIR_TARGET || sudo mkdir $$CREATE_DIR_TARGET; \
