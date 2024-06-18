@@ -143,7 +143,7 @@ grafana-d:
 	kubectl delete -f ./apps/grafana/httproute.yaml
 
 jaeger-c:
-	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.0.8
+	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.0.10
 	kubectl apply -f ./apps/jaeger/httproute.yaml
 jaeger-d:
 	helm uninstall jaeger -n istio-system
@@ -151,7 +151,7 @@ jaeger-d:
 jaeger-r: jaeger-d jaeger-c
 
 kiali-c:
-	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 1.84
+	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 1.86.0
 	kubectl apply -f apps/kiali/kiali.yaml
 	kubectl apply -f apps/kiali/httproute.yaml
 kiali-d:

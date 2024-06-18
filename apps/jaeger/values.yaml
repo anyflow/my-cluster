@@ -31,3 +31,11 @@ allInOne:
     requests:
       cpu: 256m
       memory: 128Mi
+  # The below is for SPM feature which is based on Spanmetrics, which is used when no metrics are collected separately.
+  # extraEnv:
+  #   - name: METRICS_STORAGE_TYPE
+  #     value: prometheus
+  #   - name: PROMETHEUS_SERVER_URL
+  #     value: "http://prometheus-server.cluster.svc.cluster.local:9090"
+  # args:
+  #   - "--prometheus.query.support-spanmetrics-connector=true"

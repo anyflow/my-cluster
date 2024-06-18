@@ -1,6 +1,21 @@
 apiVersion: telemetry.istio.io/v1
 kind: Telemetry
 metadata:
+  name: default
+  namespace: istio-system
+spec:
+  accessLogging:
+    - providers:
+        - name: envoy
+        - name: otelLog
+  tracing:
+    - providers:
+        - name: otelTrace
+      randomSamplingPercentage: 100
+---
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
   name: waypoint
   namespace: cluster
 spec:

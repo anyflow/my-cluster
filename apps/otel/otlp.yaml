@@ -87,7 +87,7 @@ spec:
 
     exporters:
       debug:
-        verbosity: basic # detailed, basic
+        verbosity: detailed # detailed, basic
 
       otlp/jaeger:
         endpoint: jaeger-collector.istio-system.svc.cluster.local:4317
