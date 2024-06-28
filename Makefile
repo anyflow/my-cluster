@@ -52,9 +52,9 @@ namespace-d:
 	kubectl delete -f ./cluster/namespaces.yaml
 
 istio-c:
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.1 --wait
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.2 --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system --set profile=ambient --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.1 --set profile=ambient --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.2 --set profile=ambient --wait
 	helm upgrade -i ztunnel istio/ztunnel -n istio-system --wait
 
 istio-d:
@@ -143,7 +143,7 @@ grafana-d:
 	kubectl delete -f ./apps/grafana/httproute.yaml
 
 jaeger-c:
-	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.0.10
+	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.1.0
 	kubectl apply -f ./apps/jaeger/httproute.yaml
 jaeger-d:
 	helm uninstall jaeger -n istio-system
