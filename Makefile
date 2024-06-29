@@ -2,7 +2,7 @@ include .env
 
 export
 
-initialize: cluster-c metallb-c helm_repo-c namespace-c istio-c config-c port_forward enlarge_open_file_count
+initialize: cluster-c metallb-c helm_repo-c namespace-c istio-sidecar-c config-c port_forward enlarge_open_file_count
 
 
 cluster-c:
@@ -51,7 +51,20 @@ namespace-c:
 namespace-d:
 	kubectl delete -f ./cluster/namespaces.yaml
 
-istio-c:
+istio-sidecar-c:
+	kubectl label namespaces istio-system istio-injection=enabled || true
+	kubectl label namespaces cluster istio-injection=enabled || true
+	kubectl label namespaces service istio-injection=enabled || true
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.2
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.2
+istio-sidecar-d:
+	helm uninstall istiod -n istio-system
+	helm uninstall istio-base -n istio-system
+	kubectl label namespaces istio-system istio-injection- || true
+	kubectl label namespaces cluster istio-injection- || true
+	kubectl label namespaces service istio-injection- || true
+
+istio-ambient-c:
 	kubectl label namespaces istio-system istio.io/dataplane-mode=ambient
 	kubectl label namespaces cluster istio.io/dataplane-mode=ambient
 	kubectl label namespaces service istio.io/dataplane-mode=ambient
@@ -63,7 +76,7 @@ istio-c:
 	istioctl x waypoint apply -n cluster --enroll-namespace
 	istioctl x waypoint apply -n service --enroll-namespace
 
-istio-d:
+istio-ambient-d:
 	helm uninstall ztunnel -n istio-system
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-cni -n istio-system
@@ -77,8 +90,6 @@ istio-d:
 	kubectl label namespaces istio-system istio.io/use-waypoint-
 	kubectl label namespaces cluster istio.io/use-waypoint-
 	kubectl label namespaces service istio.io/use-waypoint-
-
-istio-r: istio-d istio-c
 
 config-c:
 # set default namespace
