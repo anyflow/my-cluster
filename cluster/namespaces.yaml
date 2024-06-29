@@ -2,22 +2,22 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: cluster
-  labels:
-    istio.io/dataplane-mode: ambient
-    istio.io/use-waypoint: waypoint
+  # labels:
+  #   istio-injection: enabled
+  #   istio.io/dataplane-mode: ambient
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: istio-system
-  labels:
-    istio.io/dataplane-mode: ambient
-    istio.io/use-waypoint: waypoint
+  # labels:
+  #   istio-injection: enabled
+  #   istio.io/dataplane-mode: ambient
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: service
-  labels:
-    istio.io/dataplane-mode: ambient
-    istio.io/use-waypoint: waypoint
+  # labels:
+  #   istio-injection: enabled
+  #   istio.io/dataplane-mode: ambient

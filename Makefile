@@ -52,16 +52,31 @@ namespace-d:
 	kubectl delete -f ./cluster/namespaces.yaml
 
 istio-c:
+	kubectl label namespaces istio-system istio.io/dataplane-mode=ambient
+	kubectl label namespaces cluster istio.io/dataplane-mode=ambient
+	kubectl label namespaces service istio.io/dataplane-mode=ambient
 	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.2 --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system --set profile=ambient --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.2 --set profile=ambient --wait
 	helm upgrade -i ztunnel istio/ztunnel -n istio-system --wait
+	istioctl x waypoint apply -n istio-system --enroll-namespace
+	istioctl x waypoint apply -n cluster --enroll-namespace
+	istioctl x waypoint apply -n service --enroll-namespace
 
 istio-d:
 	helm uninstall ztunnel -n istio-system
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-cni -n istio-system
 	helm uninstall istio-base -n istio-system
+	istioctl x waypoint delete -n istio-system --all || true
+	istioctl x waypoint delete -n cluster --all || true
+	istioctl x waypoint delete -n service --all || true
+	kubectl label namespaces istio-system istio.io/dataplane-mode-
+	kubectl label namespaces cluster istio.io/dataplane-mode-
+	kubectl label namespaces service istio.io/dataplane-mode-
+	kubectl label namespaces istio-system istio.io/use-waypoint-
+	kubectl label namespaces cluster istio.io/use-waypoint-
+	kubectl label namespaces service istio.io/use-waypoint-
 
 istio-r: istio-d istio-c
 
@@ -158,6 +173,8 @@ kiali-d:
 	kubectl delete -f apps/kiali/httproute.yaml
 	kubectl delete -f apps/kiali/kiali.yaml
 	helm uninstall kiali-operator -n istio-system
+kiali-r: kiali-d kiali-c
+
 
 
 eck-c:
