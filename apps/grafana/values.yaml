@@ -3,16 +3,16 @@ adminPassword: admin
 
 labels:
   app: grafana
-  version: 10.4.0
+  version: 11.0.0
 
 podLabels:
   app: grafana
-  version: 10.4.0
+  version: 11.0.0
 
 service:
   labels:
     app: grafana
-    version: 10.4.0
+    version: 11.0.0
 
 env:
   GF_FEATURE_TOGGLES_ENABLE: traceToMetrics
@@ -38,24 +38,30 @@ datasources:
         url: http://prometheus-server.cluster.svc.cluster.local
         access: proxy
         isDefault: true
-      # - name: Elasticsearch-otel-cluster
-      #   type: elasticsearch
-      #   url: http://elasticsearch-es-http.cluster.svc.cluster.local.:9200
-      #   basicAuthUser: anyflow
-      #   basicAuthPassword: mycluster
-      #   access: proxy
-      #   basicAuth: true
-      #   isDefault: false
-      #   jsonData:
-      #     includeFrozen: false,
-      #     index: otel-k8sobject-*
-      #     logLevelField:
-      #     logMessageField:
-      #     maxConcurrentShardRequests: 5
-      #     oauthPassThru: false
-      #     sigV4Auth: false
-      #     timeField: "@timestamp"
-      #     tlsSkipVerify: true
+      - name: Jaeger
+        type: jaeger
+        url: http://jaeger-query.istio-system.svc.cluster.local:16686
+        access: proxy
+        jsonData:
+          tracesToLogsV2:
+            datasourceUid: "Elasticsearch"
+            filterByTraceID: true
+            filterBySpanID: true
+      - name: Elasticsearch
+        type: elasticsearch
+        url: http://elasticsearch-es-internal-http.cluster.svc.cluster.local:9200
+        access: proxy
+        basicAuth: true
+        basicAuthUser: anyflow
+        secureJsonData:
+          basicAuthPassword: mycluster
+        jsonData:
+          esVersion: 7
+          timeField: "@timestamp"
+          maxConcurrentShardRequests: 256
+          interval: Daily
+          logMessageField: message
+          logLevelField: level
 
 dashboardProviders:
   dashboardproviders.yaml:
@@ -63,7 +69,7 @@ dashboardProviders:
     providers:
       - name: kubernetes
         orgId: 1
-        folder: kubernetes
+        folder: Kubernetes
         type: file
         disableDeletion: false
         editable: true
@@ -71,7 +77,7 @@ dashboardProviders:
           path: /var/lib/grafana/dashboards/kubernetes
       - name: istio
         orgId: 1
-        folder: istio
+        folder: Istio
         type: file
         disableDeletion: false
         editable: true
@@ -94,4 +100,29 @@ dashboards:
     kubernetes-views-pods-dashboard:
       gnetId: 15760
       revision: 22
+      datasource: Prometheus
+  istio:
+    istio-mesh-dashboard:
+      gnetId: 7639
+      revision: 218
+      datasource: Prometheus
+    istio-service-dashboard:
+      gnetId: 7636
+      revision: 218
+      datasource: Prometheus
+    istio-workload-dashboard:
+      gnetId: 7630
+      revision: 218
+      datasource: Prometheus
+    istio-performance-dashboard:
+      gnetId: 11829
+      revision: 218
+      datasource: Prometheus
+    istio-controlplane-dashboard:
+      gnetId: 7645
+      revision: 218
+      datasource: Prometheus
+    istio-wasmextension-dashboard:
+      gnetId: 13277
+      revision: 175
       datasource: Prometheus
