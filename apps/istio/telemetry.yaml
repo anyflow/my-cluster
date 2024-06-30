@@ -12,41 +12,41 @@ spec:
     - providers:
         - name: otelTrace
       randomSamplingPercentage: 100
----
-apiVersion: telemetry.istio.io/v1
-kind: Telemetry
-metadata:
-  name: waypoint
-  namespace: cluster
-spec:
-  targetRef:
-    name: waypoint
-    kind: Gateway
-    group: gateway.networking.k8s.io
-  accessLogging:
-    - providers:
-        - name: envoy
-        - name: otelLog
-  tracing:
-    - providers:
-        - name: otelTrace
-      randomSamplingPercentage: 100
----
-apiVersion: telemetry.istio.io/v1
-kind: Telemetry
-metadata:
-  name: waypoint
-  namespace: service
-spec:
-  targetRef:
-    name: waypoint
-    kind: Gateway
-    group: gateway.networking.k8s.io
-  accessLogging:
-    - providers:
-        - name: envoy
-        - name: otelLog
-  tracing:
-    - providers:
-        - name: otelTrace
-      randomSamplingPercentage: 100
+# ---
+# apiVersion: telemetry.istio.io/v1
+# kind: Telemetry
+# metadata:
+#   name: waypoint
+#   namespace: cluster
+# spec:
+#   targetRef:
+#     name: waypoint
+#     kind: Gateway
+#     group: gateway.networking.k8s.io
+#   accessLogging:
+#     - providers:
+#         - name: envoy
+#         - name: otelLog
+#   tracing:
+#     - providers:
+#         - name: otelTrace
+#       randomSamplingPercentage: 100
+# ---
+# apiVersion: telemetry.istio.io/v1
+# kind: Telemetry
+# metadata:
+#   name: waypoint
+#   namespace: service
+# spec:
+#   targetRef:
+#     name: waypoint
+#     kind: Gateway
+#     group: gateway.networking.k8s.io
+#   accessLogging:
+#     - providers:
+#         - name: envoy
+#         - name: otelLog
+#   tracing:
+#     - providers:
+#         - name: otelTrace
+#       randomSamplingPercentage: 100

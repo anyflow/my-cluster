@@ -21,6 +21,8 @@ tags:
     description: A resource for testing error handling
   - name: system
     description: A resource for dockebi internal usage
+  - name: mock
+    description: A resource for Istio mockserver
 
 paths:
   /v1/stuff:
@@ -41,12 +43,30 @@ paths:
             example: stuff_name_#1
             type: string
           style: form
-        - name: X-Latency
+        - name: X-Delay
           in: header
-          description: Latency enforced in seconds. The default value is 0.
+          description: Delay enforced in seconds. The default value is 0.
           schema:
             type: string
             example: 0.0
+        - name: X-Error-50-Percent
+          in: header
+          description: Delay enforced in seconds. The default value is 0.
+          schema:
+            type: string
+            example: "False"
+            enum:
+              - "True"
+              - "False"
+        - name: X-Error-Type
+          in: header
+          description: 5XX status code when X-Error-50-Percent is True
+          schema:
+            type: string
+            example: "500"
+            enum:
+              - "500"
+              - "503"
       responses:
         "200":
           content:
