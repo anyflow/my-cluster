@@ -160,6 +160,7 @@ prometheus-d:
 	kubectl delete -f ${PROMETHEUS_SERVICE_MONITORS_CRD} || true
 	helm uninstall prometheus
 	kubectl delete -f ./apps/prometheus/httproute.yaml
+prometheus-r: prometheus-d prometheus-c
 
 grafana-c:
 	helm upgrade -i grafana grafana/grafana -n cluster -f ./apps/grafana/values.yaml
@@ -177,7 +178,7 @@ jaeger-d:
 jaeger-r: jaeger-d jaeger-c
 
 kiali-c:
-	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 1.86.0
+	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 1.87.0
 	kubectl apply -f apps/kiali/kiali.yaml
 	kubectl apply -f apps/kiali/httproute.yaml
 kiali-d:

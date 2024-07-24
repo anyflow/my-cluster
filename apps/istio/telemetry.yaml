@@ -12,6 +12,20 @@ spec:
     - providers:
         - name: otelTrace
       randomSamplingPercentage: 100
+  metrics:
+    - providers:
+        - name: prometheus
+      overrides:
+        - match:
+            metric: ALL_METRICS # https://istio.io/latest/docs/reference/config/telemetry/#MetricSelector-IstioMetric
+            mode: CLIENT_AND_SERVER # https://istio.io/latest/docs/reference/config/telemetry/#WorkloadMode
+          tagOverrides:
+            request_method:
+              value: request.method
+            request_apigroup:
+              value: request_apigroup
+            request_path:
+              value: request_path
 # ---
 # apiVersion: telemetry.istio.io/v1
 # kind: Telemetry
