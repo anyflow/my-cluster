@@ -27,9 +27,10 @@ meshConfig:
 
   defaultConfig: # ProxyConfig.
     holdApplicationUntilProxyStarts: true
-    tracing: {}
-    # zipkin:
-    #   address: jaeger-collector.istio-system.svc:9411 # jaeger collector address
+    tracing:
+      {}
+      # zipkin:
+      #   address: jaeger-collector.istio-system.svc:9411 # jaeger collector address
     proxyMetadata:
       # Enable basic DNS proxying
       ISTIO_META_DNS_CAPTURE: "true"

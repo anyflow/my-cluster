@@ -37,6 +37,10 @@ spec:
 #     name: waypoint
 #     kind: Gateway
 #     group: gateway.networking.k8s.io
+#     # name: waypoint
+#     # kind: Service
+#     # group: core
+#     # namespace: ""
 #   accessLogging:
 #     - providers:
 #         - name: envoy
@@ -56,6 +60,10 @@ spec:
 #     name: waypoint
 #     kind: Gateway
 #     group: gateway.networking.k8s.io
+#     # name: dockebi
+#     # kind: Service
+#     # group: core
+#     # namespace: ""
 #   accessLogging:
 #     - providers:
 #         - name: envoy

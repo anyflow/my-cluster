@@ -2,7 +2,7 @@ include .env
 
 export
 
-initialize: cluster-c metallb-c helm_repo-c namespace-c istio-sidecar-c config-c port_forward enlarge_open_file_count
+initialize: cluster-c metallb-c helm_repo-c namespace-c config-c istio-ambient-c port_forward enlarge_open_file_count
 
 
 cluster-c:
@@ -55,8 +55,8 @@ istio-sidecar-c:
 	kubectl label namespaces istio-system istio-injection=enabled || true
 	kubectl label namespaces cluster istio-injection=enabled || true
 	kubectl label namespaces service istio-injection=enabled || true
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.2
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.2
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.23.0
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.23.0
 istio-sidecar-d:
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-base -n istio-system
@@ -68,22 +68,24 @@ istio-ambient-c:
 	kubectl label namespaces istio-system istio.io/dataplane-mode=ambient
 	kubectl label namespaces cluster istio.io/dataplane-mode=ambient
 	kubectl label namespaces service istio.io/dataplane-mode=ambient
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.22.2 --wait
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.23.0 --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system --set profile=ambient --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.22.2 --set profile=ambient --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.23.0 --set profile=ambient --wait
 	helm upgrade -i ztunnel istio/ztunnel -n istio-system --wait
-	istioctl x waypoint apply -n istio-system --enroll-namespace
-	istioctl x waypoint apply -n cluster --enroll-namespace
-	istioctl x waypoint apply -n service --enroll-namespace
+	istioctl waypoint apply -n istio-system --enroll-namespace
+	istioctl waypoint apply -n cluster --enroll-namespace
+	istioctl waypoint apply -n service --enroll-namespace
+	kubectl apply -f ./aps/istio/telemetry.yaml
 
 istio-ambient-d:
+	kubectl delete -f ./aps/istio/telemetry.yaml
 	helm uninstall ztunnel -n istio-system
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-cni -n istio-system
 	helm uninstall istio-base -n istio-system
-	istioctl x waypoint delete -n istio-system --all || true
-	istioctl x waypoint delete -n cluster --all || true
-	istioctl x waypoint delete -n service --all || true
+	istioctl waypoint delete -n istio-system --all || true
+	istioctl waypoint delete -n cluster --all || true
+	istioctl waypoint delete -n service --all || true
 	kubectl label namespaces istio-system istio.io/dataplane-mode-
 	kubectl label namespaces cluster istio.io/dataplane-mode-
 	kubectl label namespaces service istio.io/dataplane-mode-
@@ -170,7 +172,7 @@ grafana-d:
 	kubectl delete -f ./apps/grafana/httproute.yaml
 
 jaeger-c:
-	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.1.0
+	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.1.2
 	kubectl apply -f ./apps/jaeger/httproute.yaml
 jaeger-d:
 	helm uninstall jaeger -n istio-system
@@ -178,7 +180,7 @@ jaeger-d:
 jaeger-r: jaeger-d jaeger-c
 
 kiali-c:
-	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 1.87.0
+	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 1.88.0
 	kubectl apply -f apps/kiali/kiali.yaml
 	kubectl apply -f apps/kiali/httproute.yaml
 kiali-d:
