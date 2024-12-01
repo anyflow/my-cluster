@@ -2,39 +2,45 @@
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
-  name: otel-otlp
-  namespace: cluster
+  name: otlp
+  namespace: opentelemetry
   labels:
-    app: otel-otlp-collector
+    app: otlp-collector
+    version: 0.110.0
 spec:
   mode: deployment
+  serviceAccount: otel-collector
+
+  env:
+    - name: GOMEMLIMIT
+      value: 680MiB # memory * 0.85(limit_percentage) * 0.8 80% of hard memory limit is highly recommended by Official README.
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1000Mi
+    limits:
+      cpu: 500m
+      memory: 1000Mi
+
   # replicas: 1
   autoscaler:
     minReplicas: 1
     maxReplicas: 2
-  resources:
-    # requests:
-    #   cpu: 10m
-    #   memory: 10Mi
-    limits:
-      cpu: 500m
-      memory: 1000Mi
+    targetCPUUtilization: 60
+    targetMemoryUtilization: 60
+
   podAnnotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "8888"
+    # sidecar.istio.io/proxyCPU: 200m
+    # sidecar.istio.io/proxyCPULimit: 200m
+    # sidecar.istio.io/proxyMemory: 256Mi
+    # sidecar.istio.io/proxyMemoryLimit: 256Mi
+    sidecar.istio.io/interceptionMode: TPROXY # k8sattributes would get 127.0.0.6(used in Istio internally) as k8s.pod.ip from targets unless using TPROXY mode. Then it fails to get correct other k8s resource like k8s.namespace.name.
+
   config:
     extensions:
       health_check: # for k8s liveness and readiness probes
         endpoint: 0.0.0.0:13133 # default
-
-    processors:
-      batch: # buffer up to 10000 spans, metric data points, log records for up to 5 seconds
-        send_batch_size: 10000
-        timeout: 5s
-      memory_limiter:
-        check_interval: 1s # recommended by official README
-        limit_percentage: 80 # in 1Gi memory environment, hard limit is 800Mi
-        spike_limit_percentage: 25 # in 1Gi memory environment, soft limit is 500Mi (800 - 250 = 550Mi)
 
     service:
       extensions:
@@ -42,8 +48,9 @@ spec:
 
       telemetry:
         logs:
-          level: INFO
+          level: info # debug
         metrics:
+          level: detailed
           address: 0.0.0.0:8888
 
       pipelines:
@@ -72,10 +79,13 @@ spec:
             - otlp
           processors:
             - memory_limiter
+            - k8sattributes
+            - transform
             - batch
           exporters:
             - debug
-            - otlphttp/prometheus
+            - prometheusremotewrite
+            # - otlphttp/prometheus
 
     receivers:
       otlp:
@@ -85,17 +95,80 @@ spec:
           http:
             endpoint: 0.0.0.0:4318
 
+    processors:
+      batch: # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md
+        send_batch_size: 8192 # default 8192
+        send_batch_max_size: 0 # default 0, which means no limit on size.
+        timeout: 5s # default 200ms
+      memory_limiter: # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md
+        check_interval: 1s # recommended by official README
+        limit_percentage: 85
+        spike_limit_percentage: 17 # default is 20% of hard limit. 17% = 0.85(limit_percentage) * 0.2
+
+      k8sattributes:
+        auth_type: "serviceAccount"
+        pod_association:
+          - sources:
+              - from: connection
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.pod.name
+            - k8s.pod.hostname
+            - k8s.pod.start_time
+            - k8s.replicaset.name
+            - k8s.deployment.name
+            - k8s.daemonset.name
+            - k8s.statefulset.name
+            - k8s.cronjob.name
+            - k8s.job.name
+            - k8s.node.name
+          labels:
+            - tag_name: app
+              key: app
+              from: pod
+            - tag_name: version
+              key: version
+              from: pod
+      transform:
+        metric_statements:
+          - context: datapoint
+            statements:
+              # - set(attributes["otelcol_pod_name"], "${env:POD_NAME}") # just for referencing usage of env variable
+              # - set(attributes["namespace"], resource.attributes["k8s.namespace.name"])
+              # - replace_all_patterns(resource.attributes, "key", "k8s_(.*?)_name", "$$1")
+
     exporters:
       debug:
         verbosity: basic # detailed, basic
 
+      # otlphttp/prometheus:
+      #   metrics_endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp/v1/metrics
+      #   tls:
+      #     insecure: true
+      prometheusremotewrite: # for pushing metrics to prometheus instead of pulling of right above
+        endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/write
+        # tls:
+        #   insecure: true
+        target_info:
+          enabled: false
+        timeout: 30s # (default: 5s) added to address "context deadline exceeded" data dropping error.
+        external_labels:
+          otelcol_pod: "${env:POD_NAME}"
+        remote_write_queue:
+          enabled: true
+          num_consumers: 5 # minimum number of workers to use to fan out the outgoing requests. (default: 5)
+          queue_size: 5000 # default 10000. send_batch_max_size + 1000 applied
+        resource_to_telemetry_conversion:
+          enabled: true # Convert resource attributes to metric labels
+        retry_on_failure: # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md
+          enabled: true # default true.
+          initial_interval: 5s # (default = 5s): Time to wait after the first failure before retrying; ignored
+          max_interval: 30s # (default = 30s): Is the upper bound on backoff
+          max_elapsed_time: 300s # (default = 300s): Is the maximum amount of time spent trying to send a batch; ignored if enabled is false. If set to 0, the retries are never stopped.
+
       otlp/jaeger:
         endpoint: jaeger-collector.istio-system.svc.cluster.local:4317
-        tls:
-          insecure: true
-
-      otlphttp/prometheus:
-        metrics_endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp/v1/metrics
         tls:
           insecure: true
 

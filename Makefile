@@ -55,8 +55,8 @@ istio-sidecar-c:
 	kubectl label namespaces istio-system istio-injection=enabled || true
 	kubectl label namespaces cluster istio-injection=enabled || true
 	kubectl label namespaces service istio-injection=enabled || true
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.23.0
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.23.0
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.24.1
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.24.1
 istio-sidecar-d:
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-base -n istio-system
@@ -68,17 +68,17 @@ istio-ambient-c:
 	kubectl label namespaces istio-system istio.io/dataplane-mode=ambient
 	kubectl label namespaces cluster istio.io/dataplane-mode=ambient
 	kubectl label namespaces service istio.io/dataplane-mode=ambient
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.23.0 --wait
-	helm upgrade -i istio-cni istio/cni -n istio-system --set profile=ambient --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.23.0 --set profile=ambient --wait
-	helm upgrade -i ztunnel istio/ztunnel -n istio-system --wait
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.24.1 --wait
+	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.24.1 --set profile=ambient --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.24.1 --set profile=ambient --wait
+	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.24.1 --wait
 	istioctl waypoint apply -n istio-system --enroll-namespace
 	istioctl waypoint apply -n cluster --enroll-namespace
 	istioctl waypoint apply -n service --enroll-namespace
-	kubectl apply -f ./aps/istio/telemetry.yaml
+	kubectl apply -f ./apps/istio/telemetry.yaml
 
 istio-ambient-d:
-	kubectl delete -f ./aps/istio/telemetry.yaml
+	kubectl delete -f ./apps/istio/telemetry.yaml
 	helm uninstall ztunnel -n istio-system
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-cni -n istio-system
@@ -180,7 +180,7 @@ jaeger-d:
 jaeger-r: jaeger-d jaeger-c
 
 kiali-c:
-	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 1.88.0
+	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 2.1.0
 	kubectl apply -f apps/kiali/kiali.yaml
 	kubectl apply -f apps/kiali/httproute.yaml
 kiali-d:
@@ -189,6 +189,45 @@ kiali-d:
 	helm uninstall kiali-operator -n istio-system
 kiali-r: kiali-d kiali-c
 
+
+otel-c:
+	helm upgrade -n opentelemetry -i opentelemetry-operator open-telemetry/opentelemetry-operator \
+	--set "manager.collectorImage.repository=otel/opentelemetry-collector-contrib" \
+	--set admissionWebhooks.certManager.enabled=false \
+	--set admissionWebhooks.autoGenerateCert.enabled=true
+	kubectl apply -f apps/otel/rbac.yaml
+otel-d:
+	kubectl delete -f apps/otel/rbac.yaml
+	helm uninstall opentelemetry-operator
+
+otel-prometheus-c:
+	kubectl apply -f apps/otel/prometheus.yaml
+otel-prometheus-d:
+	kubectl delete -f apps/otel/prometheus.yaml
+
+otel-cluster-c:
+	kubectl apply -f apps/otel/cluster.yaml
+otel-cluster-d:
+	kubectl delete -f apps/otel/cluster.yaml
+
+otel-otlp-c:
+	kubectl apply -f apps/otel/otlp.yaml
+otel-otlp-d:
+	kubectl delete -f apps/otel/otlp.yaml
+otel-otlp-r: otel-otlp-d otel-otlp-c
+
+otel-node-c:
+	kubectl apply -f apps/otel/node.yaml
+otel-node-d:
+	kubectl delete -f apps/otel/node.yaml
+
+
+cert_manager-c:
+	kubectl create ns cert-manager || true
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+
+cert_manager-d:
+	kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
 
 
 eck-c:
@@ -222,43 +261,6 @@ fluentbit-c:
 	helm upgrade -i fluentbit bitnami/fluent-bit -f ./apps/fluentbit/values.yaml -n cluster
 fluentbit-d:
 	helm uninstall fluentbit -n cluster
-
-otel-c:
-	helm upgrade -i opentelemetry-operator open-telemetry/opentelemetry-operator \
-	--set "manager.collectorImage.repository=otel/opentelemetry-collector-contrib" \
-	--set admissionWebhooks.certManager.enabled=false \
-	--set admissionWebhooks.autoGenerateCert.enabled=true
-otel-d:
-	helm uninstall opentelemetry-operator
-
-otel-prometheus-c:
-	kubectl apply -f apps/otel/prometheus.yaml
-otel-prometheus-d:
-	kubectl delete -f apps/otel/prometheus.yaml
-
-otel-cluster-c:
-	kubectl apply -f apps/otel/cluster.yaml
-otel-cluster-d:
-	kubectl delete -f apps/otel/cluster.yaml
-
-otel-otlp-c:
-	kubectl apply -f apps/otel/otlp.yaml
-otel-otlp-d:
-	kubectl delete -f apps/otel/otlp.yaml
-otel-otlp-r: otel-otlp-d otel-otlp-c
-
-otel-node-c:
-	kubectl apply -f apps/otel/node.yaml
-otel-node-d:
-	kubectl delete -f apps/otel/node.yaml
-
-
-cert_manager-c:
-	kubectl create ns cert-manager || true
-	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
-
-cert_manager-d:
-	kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
 
 
 kafka-c:

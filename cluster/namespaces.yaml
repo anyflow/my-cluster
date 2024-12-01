@@ -17,6 +17,14 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: opentelemetry
+  # labels:
+  #   istio-injection: enabled
+  #   istio.io/dataplane-mode: ambient
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: service
   # labels:
   #   istio-injection: enabled
