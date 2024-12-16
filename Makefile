@@ -172,7 +172,7 @@ grafana-d:
 	kubectl delete -f ./apps/grafana/httproute.yaml
 
 jaeger-c:
-	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.1.2
+	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.3.3
 	kubectl apply -f ./apps/jaeger/httproute.yaml
 jaeger-d:
 	helm uninstall jaeger -n istio-system

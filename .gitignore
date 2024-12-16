@@ -11,6 +11,7 @@
 **/jenkins-pipeliner
 **/istio-*
 **/cert/*.pem
+**/algorithm
 
 **/nodes*
 **/docserver/output

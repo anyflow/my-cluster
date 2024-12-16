@@ -2,7 +2,7 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: waypoint
+  name: waypoint-istio-system
   namespace: istio-system
   labels:
     istio.io/waypoint-for: istio-system
@@ -19,7 +19,7 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: waypoint
+  name: waypoint-cluster
   namespace: cluster
   labels:
     istio.io/waypoint-for: cluster
@@ -36,7 +36,7 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: waypoint
+  name: waypoint-oepntelemetry
   namespace: opentelemetry
   labels:
     istio.io/waypoint-for: opentelemetry
@@ -53,10 +53,27 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: waypoint
+  name: waypoint-service
   namespace: service
   labels:
     istio.io/waypoint-for: service
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+    - allowedRoutes:
+        namespaces:
+          from: Same
+      name: mesh
+      port: 15008
+      protocol: HBONE
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: waypoint-kube-system
+  namespace: kube-system
+  labels:
+    istio.io/waypoint-for: kube-system
 spec:
   gatewayClassName: istio-waypoint
   listeners:

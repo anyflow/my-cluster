@@ -2,30 +2,43 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: cluster
-  # labels:
-  #   istio-injection: enabled
-  #   istio.io/dataplane-mode: ambient
+  labels:
+    istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: waypoint-cluster
+    # istio-injection: enabled
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: istio-system
-  # labels:
+  labels:
+    istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: waypoint-istio-system
   #   istio-injection: enabled
-  #   istio.io/dataplane-mode: ambient
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: opentelemetry
-  # labels:
+  labels:
+    istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: waypoint-opentelemetry
   #   istio-injection: enabled
-  #   istio.io/dataplane-mode: ambient
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: service
-  # labels:
+  labels:
+    istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: waypoint-service
   #   istio-injection: enabled
-  #   istio.io/dataplane-mode: ambient
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system
+  labels:
+    istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: waypoint-kube-system
+  #   istio-injection: enabled
