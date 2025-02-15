@@ -12,6 +12,19 @@ spec:
     - providers:
         - name: otelTrace
       randomSamplingPercentage: 100
+  metrics:
+    - providers:
+        - name: prometheus
+      overrides:
+        - match:
+            # metric: REQUEST_COUNT
+            metric: ALL_METRICS # https://istio.io/latest/docs/reference/config/telemetry/#MetricSelector-IstioMetric
+            mode: CLIENT_AND_SERVER # https://istio.io/latest/docs/reference/config/telemetry/#WorkloadMode
+          tagOverrides:
+            request_method:
+              value: request.method
+            request_path:
+              value: request.headers['x-openapi-path']
   # metrics:
   #   - providers:
   #       - name: prometheus

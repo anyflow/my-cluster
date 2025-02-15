@@ -2,8 +2,8 @@ include .env
 
 export
 
-initialize: cluster-c metallb-c helm_repo-c namespace-c config-c istio-ambient-c port_forward enlarge_open_file_count
-
+initialize: port_forward enlarge_open_file_count cluster-c metallb-c helm_repo-c namespace-c config-c
+next: istio-sidecar-c gateway-c # TODO istio-ambient-c는 ztunnel 생성 시 오류 중. coreDNS가 원인 모르게 함께 죽음
 
 cluster-c:
 	kind create cluster --config ./kind-config.yaml
@@ -51,6 +51,14 @@ namespace-c:
 namespace-d:
 	kubectl delete -f ./cluster/namespaces.yaml
 
+config-c:
+# set default namespace
+	kubectl config set-context --current --namespace=cluster || true
+# install default tls secret
+	kubectl create secret tls default-tls -n cluster --cert=./cert/fullchain.pem --key=./cert/privkey.pem || true
+# set metallb config
+	kubectl apply -f ./cluster/metallb-config.yaml || true
+
 istio-sidecar-c:
 	kubectl label namespaces istio-system istio-injection=enabled || true
 	kubectl label namespaces cluster istio-injection=enabled || true
@@ -93,13 +101,7 @@ istio-ambient-d:
 	kubectl label namespaces cluster istio.io/use-waypoint-
 	kubectl label namespaces service istio.io/use-waypoint-
 
-config-c:
-# set default namespace
-	kubectl config set-context --current --namespace=cluster || true
-# install default tls secret
-	kubectl create secret tls default-tls -n cluster --cert=./cert/fullchain.pem --key=./cert/privkey.pem || true
-# set metallb config
-	kubectl apply -f ./cluster/metallb-config.yaml || true
+gateway-c:
 # install gateway
 	@if ! kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; then \
 		kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.1.0" | kubectl apply -f -; \

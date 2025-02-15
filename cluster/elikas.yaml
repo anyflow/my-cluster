@@ -1,0 +1,223 @@
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: openapi-path-filter
+  namespace: cluster
+spec:
+  selector:
+    matchLabels:
+      app: gateway
+  url: oci://docker-registry.anyflow.net/openapi-path-filter:0.1.0
+  pluginConfig:
+    openapi: 3.0.0
+    paths:
+      /dockebi/v1/stuff:
+        parameters:
+          - $ref: "#/components/parameters/XColor"
+          - $ref: "#/components/parameters/XStorage"
+        get:
+          summary: List all stuffs or search stuffs by name
+          x-openapi-router-controller: api.stuff
+          operationId: search
+          parameters:
+            - description: stuff name
+              explode: true
+              in: query
+              name: name
+              required: false
+              schema:
+                example: stuff_name_#1
+                type: string
+              style: form
+            - name: X-Delay
+              in: header
+              description: Delay enforced in seconds. The default value is 0.
+              schema:
+                type: string
+                example: 0.0
+            - name: X-Error-50-Percent
+              in: header
+              description: Delay enforced in seconds. The default value is 0.
+              schema:
+                type: string
+                example: "False"
+                enum:
+                  - "True"
+                  - "False"
+            - name: X-Error-Type
+              in: header
+              description: 5XX status code when X-Error-50-Percent is True
+              schema:
+                type: string
+                example: "500"
+                enum:
+                  - "500"
+                  - "503"
+          responses:
+            "200":
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      resultCode:
+                        type: string
+                        example: "0000"
+                      result:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Stuff"
+              description: Processed successfully
+            "400":
+              $ref: "#/components/responses/Error400"
+            "500":
+              $ref: "#/components/responses/Error500"
+          tags:
+            - stuff
+          x-krakend:
+            input_headers: ["*"]
+            output_encoding: json
+            backend:
+              - host:
+                  - dockebi.cluster.svc.cluster.local:8080
+                url_pattern: /v1/stuff
+                method: GET
+                encoding: json
+                extra_config:
+                  "@test_extra_config": extra_config_in_backend
+            extra_config:
+              "@test_extra_config": extra_config_in_endpoint
+              auth/api-keys:
+                roles:
+                  - testRole
+                client_max_rate: 10
+        post:
+          summary: Create a stuff
+          x-openapi-router-controller: api.stuff
+          operationId: post
+          parameters:
+            - $ref: "#/components/parameters/XDummyHeader"
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Stuff"
+            required: true
+            x-body-name: stuff
+          responses:
+            "200":
+              description: Processed successfully
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      resultCode:
+                        type: string
+                        example: "0000"
+                      result:
+                        type: object
+                        properties:
+                          id_:
+                            type: string
+                            description: Created stuff ID
+                            example: 3250ef52-b0d9-4167-8d56-a7d7a5525bb4
+            "400":
+              $ref: "#/components/responses/Error400"
+            "500":
+              $ref: "#/components/responses/Error500"
+          tags:
+            - stuff
+
+      /dockebi/v1/stuff/{id_}:
+        parameters:
+          - $ref: "#/components/parameters/XColor"
+          - $ref: "#/components/parameters/XStorage"
+        put:
+          summary: Update a stuff by id_
+          x-openapi-router-controller: api.stuff
+          operationId: put
+          parameters:
+            - $ref: "#/components/parameters/PathStuffId"
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Stuff"
+            required: true
+            x-body-name: stuff
+          responses:
+            "200":
+              description: Processed successfully
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      resultCode:
+                        type: string
+                        example: "0000"
+                      result:
+                        type: object
+                        properties:
+                          id_:
+                            type: string
+                            description: Updated stuff ID
+                            example: 3250ef52-b0d9-4167-8d56-a7d7a5525bb4
+            "400":
+              $ref: "#/components/responses/Error400"
+            "500":
+              $ref: "#/components/responses/Error500"
+          tags:
+            - stuff
+        delete:
+          summary: Delete a stuff by id_
+          x-openapi-router-controller: api.stuff
+          operationId: delete
+          parameters:
+            - $ref: "#/components/parameters/PathStuffId"
+          responses:
+            "200":
+              description: Processed successfully
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      resultCode:
+                        type: string
+                        example: "0000"
+                      result:
+                        type: object
+                        properties:
+                          id_:
+                            type: string
+                            description: Deleted stuff ID
+                            example: 3250ef52-b0d9-4167-8d56-a7d7a5525bb4
+            "400":
+              $ref: "#/components/responses/Error400"
+            "500":
+              $ref: "#/components/responses/Error500"
+          tags:
+            - stuff
+        get:
+          summary: Get a stuff by id_
+          x-openapi-router-controller: api.stuff
+          operationId: get
+          parameters:
+            - $ref: "#/components/parameters/PathStuffId"
+          responses:
+            "200":
+              description: Processed successfully
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      resultCode:
+                        type: string
+                        example: "0000"
+                      result:
+                        type: object
+                        $ref: "#/components/schemas/Stuff"
+            "400":
+              $ref: "#/components/responses/Error400"
+            "500":
+              $ref: "#/components/responses/Error500"
+          tags:
+            - stuff
