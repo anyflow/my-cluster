@@ -1,0 +1,16 @@
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: openapi-path-filter
+  namespace: cluster
+spec:
+  selector:
+    matchLabels:
+      app: gateway
+  url: docker-registry.anyflow.net/openapi-path-filter:0.1.7
+  imagePullPolicy: Always
+  pluginConfig:
+    paths:
+      /dockebi/v1/stuff: {}
+      /dockebi/v1/stuff/{id_}: {}
+      /dockebi/v1/stuff/{id_}/child/{child_id}/hello: {}
