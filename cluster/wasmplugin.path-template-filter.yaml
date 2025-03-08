@@ -1,0 +1,32 @@
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: path-template-filter
+  namespace: cluster
+spec:
+  selector:
+    matchLabels:
+      app: gateway
+  url: anyflow/path-template-filter:0.2.2
+  imagePullPolicy: Always
+  phase: STATS # Applies the filter before the istio.stats filter in the Envoy filter chain.
+  failStrategy: FAIL_OPEN # Configures the filter to be non-critical; bypasses the filter on fatal errors.
+  #  priority: 10
+  pluginConfig:
+    cacheSize: 5
+    services:
+      - name: dockebi
+        paths:
+          /dockebi/v1/stuff: {}
+          /dockebi/v1/stuff/{id_}: {}
+          /dockebi/v1/stuff/{id_}/child/{child_id}/hello: {}
+      - name: userservice
+        paths:
+          /users: {}
+          /users/{id}: {}
+          /users/{id}/profile: {}
+      - name: productservice
+        paths:
+          /products: {}
+          /products/{product_id}: {}
+          /categories/{category_id}/products: {}

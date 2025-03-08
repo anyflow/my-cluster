@@ -5,7 +5,6 @@ metadata:
   labels:
     istio.io/dataplane-mode: ambient
     istio.io/use-waypoint: waypoint-cluster
-    # istio-injection: enabled
 ---
 apiVersion: v1
 kind: Namespace
@@ -14,7 +13,6 @@ metadata:
   labels:
     istio.io/dataplane-mode: ambient
     istio.io/use-waypoint: waypoint-istio-system
-  #   istio-injection: enabled
 ---
 apiVersion: v1
 kind: Namespace
@@ -23,7 +21,6 @@ metadata:
   labels:
     istio.io/dataplane-mode: ambient
     istio.io/use-waypoint: waypoint-opentelemetry
-  #   istio-injection: enabled
 ---
 apiVersion: v1
 kind: Namespace
@@ -32,7 +29,6 @@ metadata:
   labels:
     istio.io/dataplane-mode: ambient
     istio.io/use-waypoint: waypoint-service
-  #   istio-injection: enabled
 ---
 apiVersion: v1
 kind: Namespace
@@ -41,4 +37,3 @@ metadata:
   labels:
     istio.io/dataplane-mode: ambient
     istio.io/use-waypoint: waypoint-kube-system
-  #   istio-injection: enabled

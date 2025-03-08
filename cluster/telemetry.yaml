@@ -12,6 +12,16 @@ spec:
     - providers:
         - name: otelTrace
       randomSamplingPercentage: 100
+      customTags:
+        baggage:
+          header:
+            name: baggage
+            defaultValue: "-"
+        x-message-id:
+          header:
+            name: x-message-id
+            defaultValue: "-"
+
   metrics:
     - providers:
         - name: prometheus
@@ -19,12 +29,15 @@ spec:
         - match:
             # metric: REQUEST_COUNT
             metric: ALL_METRICS # https://istio.io/latest/docs/reference/config/telemetry/#MetricSelector-IstioMetric
-            mode: CLIENT_AND_SERVER # https://istio.io/latest/docs/reference/config/telemetry/#WorkloadMode
+            mode: SERVER # https://istio.io/latest/docs/reference/config/telemetry/#WorkloadMode
           tagOverrides:
             request_method:
               value: request.method
             request_path:
-              value: request.headers['x-openapi-path']
+              value: request.headers['x-path-template']
+            request_service:
+              value: request.headers['x-service-name']
+
   # metrics:
   #   - providers:
   #       - name: prometheus

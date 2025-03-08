@@ -2,7 +2,8 @@ include .env
 
 export
 
-initialize: port_forward enlarge_open_file_count cluster-c metallb-c helm_repo-c namespace-c config-c
+onetime: port_forward enlarge_open_file_count
+init: cluster-c metallb-c helm_repo-c config-c
 next: istio-sidecar-c gateway-c # TODO istio-ambient-c는 ztunnel 생성 시 오류 중. coreDNS가 원인 모르게 함께 죽음
 
 cluster-c:
@@ -60,12 +61,16 @@ config-c:
 	kubectl apply -f ./cluster/metallb-config.yaml || true
 
 istio-sidecar-c:
+	kubectl apply -f ./cluster/namespaces.sidecar.yaml
 	kubectl label namespaces istio-system istio-injection=enabled || true
 	kubectl label namespaces cluster istio-injection=enabled || true
 	kubectl label namespaces service istio-injection=enabled || true
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.24.1
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.24.1
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.0
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0
+	kubectl apply -f ./cluster/telemetry.yaml
+
 istio-sidecar-d:
+	kubectl delete -f ./cluster/telemetry.yaml || true
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-base -n istio-system
 	kubectl label namespaces istio-system istio-injection- || true
@@ -73,20 +78,21 @@ istio-sidecar-d:
 	kubectl label namespaces service istio-injection- || true
 
 istio-ambient-c:
+	kubectl apply -f ./cluster/namespaces.ambient.yaml
 	kubectl label namespaces istio-system istio.io/dataplane-mode=ambient
 	kubectl label namespaces cluster istio.io/dataplane-mode=ambient
 	kubectl label namespaces service istio.io/dataplane-mode=ambient
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.24.1 --wait
-	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.24.1 --set profile=ambient --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./apps/istio/values.yaml --version 1.24.1 --set profile=ambient --wait
-	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.24.1 --wait
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.0 --wait
+	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.0 --set profile=ambient --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0 --set profile=ambient --wait
+	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.25.0 --wait
 	istioctl waypoint apply -n istio-system --enroll-namespace
 	istioctl waypoint apply -n cluster --enroll-namespace
 	istioctl waypoint apply -n service --enroll-namespace
-	kubectl apply -f ./apps/istio/telemetry.yaml
+	kubectl apply -f ./cluster/telemetry.yaml
 
 istio-ambient-d:
-	kubectl delete -f ./apps/istio/telemetry.yaml
+	kubectl delete -f ./cluster/telemetry.yaml || true
 	helm uninstall ztunnel -n istio-system
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-cni -n istio-system
@@ -104,9 +110,11 @@ istio-ambient-d:
 gateway-c:
 # install gateway
 	@if ! kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; then \
-		kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.1.0" | kubectl apply -f -; \
+		kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.2.1" | kubectl apply -f -; \
 	fi
 	kubectl apply -f ./cluster/gateway.yaml || true
+	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
+	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 # install ingress
 # 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 # 	@echo "Waiting maximum 300s for ingress controller to be ready ..."
@@ -174,7 +182,7 @@ grafana-d:
 	kubectl delete -f ./apps/grafana/httproute.yaml
 
 jaeger-c:
-	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.3.3
+	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.4.0
 	kubectl apply -f ./apps/jaeger/httproute.yaml
 jaeger-d:
 	helm uninstall jaeger -n istio-system
@@ -182,7 +190,7 @@ jaeger-d:
 jaeger-r: jaeger-d jaeger-c
 
 kiali-c:
-	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 2.1.0
+	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 2.6.0
 	kubectl apply -f apps/kiali/kiali.yaml
 	kubectl apply -f apps/kiali/httproute.yaml
 kiali-d:
@@ -305,3 +313,8 @@ jenkins-d:
 	kubectl delete -f ./apps/jenkins/httproute.yaml
 	kubectl delete -f ./apps/jenkins/pvc.yaml
 	kubectl delete -f ./apps/jenkins/pv.yaml
+
+metric-server-c:
+	kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+	kubectl patch deployment metrics-server -n kube-system --type='json' \
+  -p '[{"op":"add", "path":"/spec/template/spec/containers/0/args/-", "value":"--kubelet-insecure-tls"}]'

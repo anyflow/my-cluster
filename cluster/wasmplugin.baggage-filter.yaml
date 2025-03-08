@@ -1,0 +1,15 @@
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: baggage-filter
+  namespace: cluster
+spec:
+  selector:
+    matchLabels:
+      app: gateway
+  url: anyflow/baggage-filter:0.1.2
+  imagePullPolicy: Always
+  phase: STATS
+  pluginConfig:
+    headers:
+      - "x-message-id"
