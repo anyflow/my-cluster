@@ -89,10 +89,10 @@ istio-sidecar-d:
 	kubectl label namespaces service istio-injection- || true
 
 istio-ambient-c:
+	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
 	kubectl apply -f ./cluster/namespaces.ambient.yaml
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.0 --wait
-	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.0 --set profile=ambient --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0 --set profile=ambient --wait
+	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.0 --set profile=ambient --wait
 	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.25.0 --wait
 	istioctl waypoint apply -n istio-system --enroll-namespace
 	istioctl waypoint apply -n cluster --enroll-namespace
@@ -104,7 +104,6 @@ istio-ambient-d:
 	helm uninstall ztunnel -n istio-system
 	helm uninstall istiod -n istio-system
 	helm uninstall istio-cni -n istio-system
-	helm uninstall istio-base -n istio-system
 	istioctl waypoint delete -n istio-system --all || true
 	istioctl waypoint delete -n cluster --all || true
 	istioctl waypoint delete -n service --all || true
@@ -116,10 +115,7 @@ istio-ambient-d:
 	kubectl label namespaces service istio.io/use-waypoint-
 
 gateway-c:
-# install gateway
-	@if ! kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; then \
-		kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.2.1" | kubectl apply -f -; \
-	fi
+	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
 	kubectl apply -f ./cluster/gateway.yaml || true
 	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
