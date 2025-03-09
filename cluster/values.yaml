@@ -1,12 +1,21 @@
-pilot:
-  traceSampling: 100 # sampling percentage for tracing.
-  resources:
-    requests:
-      cpu: 10m
-      memory: 16Mi
-    limits:
-      cpu: 500m
-      memory: 1024Mi
+# for istiod
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    cpu: 500m
+    memory: 1024Mi
+# autoscaleEnabled: true
+# autoscaleMin: 1
+# autoscaleMax: 5
+# autoscaleBehavior: {}
+# replicaCount: 1
+# rollingMaxSurge: 100%
+# rollingMaxUnavailable: 25%
+# deploymentLabels: {}
+# podLabels: {}
 
 global:
   istioNamespace: istio-system
@@ -27,10 +36,6 @@ meshConfig:
 
   defaultConfig: # ProxyConfig.
     holdApplicationUntilProxyStarts: true
-    tracing:
-      {}
-      # zipkin:
-      #   address: jaeger-collector.istio-system.svc:9411 # jaeger collector address
     proxyMetadata:
       # Enable basic DNS proxying
       ISTIO_META_DNS_CAPTURE: "true"

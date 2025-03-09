@@ -3,13 +3,26 @@ include .env
 export
 
 onetime: port_forward enlarge_open_file_count
-init: cluster-c metallb-c helm_repo-c config-c
-next: istio-sidecar-c gateway-c # TODO istio-ambient-c는 ztunnel 생성 시 오류 중. coreDNS가 원인 모르게 함께 죽음
+init: cluster-c metallb-c helm_repo-c
+next: istio-sidecar-c config-c gateway-c # TODO istio-ambient-c는 ztunnel 생성 시 오류 중. coreDNS가 원인 모르게 함께 죽음
 
 cluster-c:
 	kind create cluster --config ./kind-config.yaml
 cluster-d:
 	kind delete cluster -n my-cluster
+
+cilium-c:
+	helm repo add cilium https://helm.cilium.io/
+	docker pull quay.io/cilium/cilium:v1.17.1
+	kind load docker-image quay.io/cilium/cilium:v1.17.1
+	helm upgrade cilium cilium/cilium \
+	--version 1.17.1 \
+	--namespace kube-system \
+	--set image.pullPolicy=IfNotPresent \
+	--set envoy.enabled=false \
+	--set hubble.enabled=false \
+	--set clustermesh.enabled=false \
+	--set operator.enabled=true
 
 # DO it to prevent "failed to create fsnotify watcher: too many open files" error in "kubectl logs -f" command
 enlarge_open_file_count:
@@ -45,6 +58,7 @@ helm_repo-c:
 	helm repo add bitnami https://charts.bitnami.com/bitnami
 	helm repo add elastic https://helm.elastic.co
 	helm repo add phntom https://phntom.kix.co.il/charts/
+
 	helm repo update
 
 namespace-c:
@@ -62,9 +76,6 @@ config-c:
 
 istio-sidecar-c:
 	kubectl apply -f ./cluster/namespaces.sidecar.yaml
-	kubectl label namespaces istio-system istio-injection=enabled || true
-	kubectl label namespaces cluster istio-injection=enabled || true
-	kubectl label namespaces service istio-injection=enabled || true
 	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.0
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0
 	kubectl apply -f ./cluster/telemetry.yaml
@@ -79,9 +90,6 @@ istio-sidecar-d:
 
 istio-ambient-c:
 	kubectl apply -f ./cluster/namespaces.ambient.yaml
-	kubectl label namespaces istio-system istio.io/dataplane-mode=ambient
-	kubectl label namespaces cluster istio.io/dataplane-mode=ambient
-	kubectl label namespaces service istio.io/dataplane-mode=ambient
 	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.0 --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.0 --set profile=ambient --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0 --set profile=ambient --wait
