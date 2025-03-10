@@ -17,6 +17,14 @@ spec:
           header:
             name: baggage
             defaultValue: "-"
+        request_service:
+          header:
+            name: x-service-name
+            defaultValue: "-"
+        request_path:
+          header:
+            name: x-path-template
+            defaultValue: "-"
         x-message-id:
           header:
             name: x-message-id

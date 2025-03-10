@@ -2,11 +2,14 @@ include .env
 
 export
 
+# WARN
+# kind version 0.27에서는 ambient mode 정상 동작하지 않음(ztunnel 설치 실패 - coreDNS crash 등)
+
 onetime: port_forward enlarge_open_file_count
 init: cluster-c helm_repo-c
-next: istio-sidecar-c metallb-c config-c gateway-c # TODO istio-ambient-c는 kind worker node가 존재하면 ztunnel 생성 시 coreDNS가 죽으면서 설치 실패
-app: docserver-c dockebi-c prometheus-c grafana-c jaeger-c kiali-c otel-c
-otel: otel-otlp-c otel-prometheus-c
+next: istio-ambient-c metallb-c config-c gateway-c
+app: docserver-c dockebi-c prometheus-c grafana-c jaeger-c kiali-c
+otel: otel-c otel-otlp-c otel-prometheus-c
 
 cluster-c:
 	kind create cluster --config ./kind-config.yaml
@@ -91,7 +94,7 @@ istio-sidecar-d:
 	kubectl label namespaces service istio-injection- || true
 
 istio-ambient-c:
-	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
 	helm upgrade -i istio-base istio/base -n istio-system --create-namespace --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0 --set profile=ambient --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.0 --set profile=ambient --wait
@@ -116,10 +119,10 @@ istio-ambient-d:
 	kubectl label namespaces service istio.io/use-waypoint-
 
 gateway-c:
-	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
 	kubectl apply -f ./cluster/gateway.yaml || true
-	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
-	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
+#	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
+#	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 # install ingress
 # 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 # 	@echo "Waiting maximum 300s for ingress controller to be ready ..."
@@ -177,11 +180,19 @@ prometheus-d:
 	kubectl delete -f ${PROMETHEUS_SERVICE_MONITORS_CRD} || true
 	helm uninstall prometheus
 	kubectl delete -f ./apps/prometheus/httproute.yaml
+	kubectl wait --namespace cluster \
+				--for=condition=ready pod \
+				--selector=app.kubernetes.io/name=prometheus \
+				--timeout=300s
 prometheus-r: prometheus-d prometheus-c
 
 grafana-c:
 	helm upgrade -i grafana grafana/grafana -n cluster -f ./apps/grafana/values.yaml
 	@sed 's/grafana.anyflow.net/${DOMAIN_GRAFANA}/' ./apps/grafana/httproute.yaml | kubectl apply -f -
+	kubectl wait --namespace cluster \
+				--for=condition=ready pod \
+				--selector=app.kubernetes.io/name=grafana \
+				--timeout=300s
 grafana-d:
 	helm uninstall grafana
 	kubectl delete -f ./apps/grafana/httproute.yaml
@@ -189,6 +200,13 @@ grafana-d:
 jaeger-c:
 	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.4.0
 	kubectl apply -f ./apps/jaeger/httproute.yaml
+	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 2.6.0
+	kubectl apply -f apps/kiali/kiali.yaml
+	kubectl apply -f apps/kiali/httproute.yaml
+	kubectl wait --namespace istio-system \
+				--for=condition=ready pod \
+				--selector=app.kubernetes.io/name=jaeger \
+				--timeout=150s
 jaeger-d:
 	helm uninstall jaeger -n istio-system
 	kubectl delete -f ./apps/jaeger/httproute.yaml
@@ -198,6 +216,10 @@ kiali-c:
 	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 2.6.0
 	kubectl apply -f apps/kiali/kiali.yaml
 	kubectl apply -f apps/kiali/httproute.yaml
+	kubectl wait --namespace istio-system \
+				--for=condition=ready pod \
+				--selector=app.kubernetes.io/name=kiali \
+				--timeout=150s
 kiali-d:
 	kubectl delete -f apps/kiali/httproute.yaml
 	kubectl delete -f apps/kiali/kiali.yaml
