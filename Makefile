@@ -2,9 +2,13 @@ include .env
 
 export
 
+# WARN
+# kind version 0.27에서는 ambient mode 정상 동작하지 않음(ztunnel 설치 실패 - coreDNS crash 등)
+# gateway API 1.2.0, 1.2.1 은 request 시 envoy가 RBAC access denied를 발생시킴
+
 onetime: port_forward enlarge_open_file_count
 init: cluster-c helm_repo-c
-next: istio-sidecar-c metallb-c config-c gateway-c # TODO istio-ambient-c는 kind worker node가 존재하면 ztunnel 생성 시 coreDNS가 죽으면서 설치 실패
+next: istio-sidecar-c metallb-c config-c gateway-c
 app: docserver-c dockebi-c prometheus-c grafana-c jaeger-c kiali-c otel-c
 otel: otel-otlp-c otel-prometheus-c
 
@@ -91,7 +95,7 @@ istio-sidecar-d:
 	kubectl label namespaces service istio-injection- || true
 
 istio-ambient-c:
-	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
 	helm upgrade -i istio-base istio/base -n istio-system --create-namespace --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0 --set profile=ambient --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.0 --set profile=ambient --wait
@@ -116,10 +120,10 @@ istio-ambient-d:
 	kubectl label namespaces service istio.io/use-waypoint-
 
 gateway-c:
-	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
 	kubectl apply -f ./cluster/gateway.yaml || true
-	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
-	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
+	# kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
+	# kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 # install ingress
 # 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 # 	@echo "Waiting maximum 300s for ingress controller to be ready ..."

@@ -25,12 +25,12 @@ nodes:
   #       hostPort: 443
   #       protocol: TCP
 
-  # - role: worker
-  #   extraMounts:
-  #     - hostPath: ./nodes/worker0/var/local-path-provisioner
-  #       containerPath: /var/local-path-provisioner # storage default path including dynamic, manual provisioning
-  #     - hostPath: /var/run/docker.sock
-  #       containerPath: /var/run/docker.sock
+  - role: worker
+    extraMounts:
+      - hostPath: ./nodes/worker0/var/local-path-provisioner
+        containerPath: /var/local-path-provisioner # storage default path including dynamic, manual provisioning
+      - hostPath: /var/run/docker.sock
+        containerPath: /var/run/docker.sock
 
   # - role: worker
   #   extraMounts:

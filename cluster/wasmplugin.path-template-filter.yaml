@@ -2,11 +2,15 @@ apiVersion: extensions.istio.io/v1alpha1
 kind: WasmPlugin
 metadata:
   name: path-template-filter
-  namespace: cluster
+  # namespace: cluster
 spec:
-  selector:
-    matchLabels:
-      app: gateway
+  # selector:
+  #   matchLabels:
+  #     app: gateway
+  targetRefs:
+    - kind: Gateway
+      group: gateway.networking.k8s.io
+      name: gateway
   url: anyflow/path-template-filter:0.2.2
   imagePullPolicy: Always
   phase: STATS # Applies the filter before the istio.stats filter in the Envoy filter chain.

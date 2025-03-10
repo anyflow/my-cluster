@@ -4,9 +4,13 @@ metadata:
   name: baggage-filter
   namespace: cluster
 spec:
-  selector:
-    matchLabels:
-      app: gateway
+  # selector:
+  #   matchLabels:
+  #     app: gateway
+  targetRefs:
+    - kind: Gateway
+      group: gateway.networking.k8s.io
+      name: gateway
   url: anyflow/baggage-filter:0.1.2
   imagePullPolicy: Always
   phase: STATS
