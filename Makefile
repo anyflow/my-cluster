@@ -3,8 +3,10 @@ include .env
 export
 
 onetime: port_forward enlarge_open_file_count
-init: cluster-c metallb-c helm_repo-c
-next: istio-sidecar-c config-c gateway-c # TODO istio-ambient-c는 ztunnel 생성 시 오류 중. coreDNS가 원인 모르게 함께 죽음
+init: cluster-c helm_repo-c
+next: istio-sidecar-c metallb-c config-c gateway-c # TODO istio-ambient-c는 kind worker node가 존재하면 ztunnel 생성 시 coreDNS가 죽으면서 설치 실패
+app: docserver-c dockebi-c prometheus-c grafana-c jaeger-c kiali-c otel-c
+otel: otel-otlp-c otel-prometheus-c
 
 cluster-c:
 	kind create cluster --config ./kind-config.yaml
@@ -90,14 +92,13 @@ istio-sidecar-d:
 
 istio-ambient-c:
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
-	kubectl apply -f ./cluster/namespaces.ambient.yaml
+	helm upgrade -i istio-base istio/base -n istio-system --create-namespace --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0 --set profile=ambient --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.0 --set profile=ambient --wait
 	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.25.0 --wait
-	istioctl waypoint apply -n istio-system --enroll-namespace
-	istioctl waypoint apply -n cluster --enroll-namespace
-	istioctl waypoint apply -n service --enroll-namespace
+	kubectl apply -f ./cluster/namespaces.ambient.yaml
 	kubectl apply -f ./cluster/telemetry.yaml
+	kubectl apply -f ./cluster/waypoints.yaml
 
 istio-ambient-d:
 	kubectl delete -f ./cluster/telemetry.yaml || true
@@ -210,6 +211,10 @@ otel-c:
 	--set admissionWebhooks.certManager.enabled=false \
 	--set admissionWebhooks.autoGenerateCert.enabled=true
 	kubectl apply -f apps/otel/rbac.yaml
+	kubectl wait --namespace opentelemetry \
+				--for=condition=ready pod \
+				--selector=app.kubernetes.io/name=opentelemetry-operator \
+				--timeout=300s
 otel-d:
 	kubectl delete -f apps/otel/rbac.yaml
 	helm uninstall opentelemetry-operator

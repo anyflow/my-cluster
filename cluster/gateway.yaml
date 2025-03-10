@@ -32,3 +32,33 @@ spec:
           - kind: Secret
             name: default-tls
             namespace: cluster
+# ---
+# apiVersion: security.istio.io/v1beta1
+# kind: AuthorizationPolicy
+# metadata:
+#   name: allow-all
+#   namespace: cluster
+# spec:
+#   targetRefs:
+#     - kind: Gateway
+#       group: gateway.networking.k8s.io
+#       name: gateway
+#   action: ALLOW
+#   rules:
+#     - from:
+#         - source:
+#             principals: ["*"] # 모든 주체(사용자, 서비스 등) 허용
+#       to:
+#         - operation:
+#             methods: ["*"] # 모든 HTTP 메서드 허용
+#             paths: ["*"] # 모든 경로 허용
+#       when: [] # 조건 없음 (모든 조건 허용)
+# ---
+# apiVersion: security.istio.io/v1beta1
+# kind: PeerAuthentication
+# metadata:
+#   name: tls-mode
+#   namespace: istio-system
+# spec:
+#   mtls:
+#     mode: PERMISSIVE

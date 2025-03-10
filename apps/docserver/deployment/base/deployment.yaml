@@ -24,7 +24,7 @@ spec:
       serviceAccountName: docserver
       securityContext: {}
       containers:
-        - image: docker-registry.anyflow.net/docserver:latest
+        - image: anyflow/docserver:latest
           imagePullPolicy: Always
           name: docserver
           ports:

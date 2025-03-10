@@ -15,7 +15,7 @@ PLATFORM ?= linux/amd64
 
 GIT_TAG ?= latest
 
-REPOSITORY := docker-registry.anyflow.net
+REPOSITORY := anyflow
 
 NAME := docserver
 
