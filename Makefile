@@ -133,7 +133,14 @@ staffonly-c:
 staffonly-d:
 	kubectl delete -k apps/staffonly/deployment
 staffonly-e:
-	kubectl exec -it -n service staffonly -- zsh
+	@POD_NAME=$$(kubectl get pods -n service | grep '^staffonly' | awk '{print $$1}' | head -n 1); \
+	if [ -z "$$POD_NAME" ]; then \
+		echo "No pod found with prefix 'staffonly' in namespace 'service'"; \
+		exit 1; \
+	else \
+		echo "Executing zsh in pod: $$POD_NAME"; \
+		kubectl exec -it -n service $$POD_NAME -- zsh; \
+	fi
 
 __create_dir:
 	test -d $$CREATE_DIR_TARGET || sudo mkdir $$CREATE_DIR_TARGET; \
