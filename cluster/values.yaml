@@ -1,21 +1,35 @@
-# for istiod
+pilot:
+  env:
+    # Enable automatic address allocation, optional. Refer https://istio.io/v1.24/docs/ops/configuration/traffic-management/dns-proxy/#dns-auto-allocation-v2
+    PILOT_ENABLE_IP_AUTOALLOCATE: "true"
 
-resources:
-  requests:
-    cpu: 10m
-    memory: 16Mi
-  limits:
-    cpu: 500m
-    memory: 1024Mi
-# autoscaleEnabled: true
-# autoscaleMin: 1
-# autoscaleMax: 5
-# autoscaleBehavior: {}
-# replicaCount: 1
-# rollingMaxSurge: 100%
-# rollingMaxUnavailable: 25%
-# deploymentLabels: {}
-# podLabels: {}
+  traceSampling: 1 # sampling percentage for tracing.
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 500m
+      memory: 1024Mi
+  # autoscaleEnabled: true
+  # autoscaleMin: 1
+  # autoscaleMax: 5
+  # autoscaleBehavior: {}
+  # replicaCount: 1
+  # rollingMaxSurge: 100%
+  # rollingMaxUnavailable: 25%
+  # deploymentLabels: {}
+  # podLabels: {}
+
+  autoscaleEnabled: true
+  autoscaleMin: 1
+  autoscaleMax: 10
+
+  podLabels:
+    thinq.service: "tcn-service-mesh"
+  podAnnotations:
+    thinq.service.title: "TCN Service Mesh"
 
 global:
   istioNamespace: istio-system
@@ -39,17 +53,15 @@ meshConfig:
     proxyMetadata:
       # Enable basic DNS proxying
       ISTIO_META_DNS_CAPTURE: "true"
-      # Enable automatic address allocation, optional
-      ISTIO_META_DNS_AUTO_ALLOCATE: "true"
 
   extensionProviders:
     - name: otelTrace
       opentelemetry:
-        service: otlp-collector.opentelemetry.svc.cluster.local
+        service: otlp-collector.observability.svc.cluster.local
         port: 4317
     - name: otelLog
       envoyOtelAls:
-        service: otlp-collector.opentelemetry.svc.cluster.local
+        service: otlp-collector.observability.svc.cluster.local
         port: 4317
         logFormat: # https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig-ExtensionProvider-EnvoyOpenTelemetryLogProvider-LogFormat
           labels: # https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#config-access-log-format-dictionaries

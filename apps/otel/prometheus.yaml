@@ -2,7 +2,7 @@ apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: prometheus
-  namespace: opentelemetry
+  namespace: observability
   labels:
     app: prometheus-collector
 spec:
@@ -122,7 +122,7 @@ spec:
       # prometheus:
       #   endpoint: 0.0.0.0:9090
       prometheusremotewrite: # for pushing metrics to prometheus instead of pulling of right above
-        endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/write
+        endpoint: http://prometheus-server.observability.svc.cluster.local:80/api/v1/write
         # tls:
         #   insecure: true
         target_info:
@@ -151,7 +151,7 @@ spec:
               static_configs:
                 - targets:
                     - 0.0.0.0:8888
-                    - otlp-collector-monitoring.opentelemetry.svc.cluster.local:8888
+                    - otlp-collector-monitoring.observability.svc.cluster.local:8888
             # A scrape configuration for running Prometheus on a Kubernetes cluster.
             # This uses separate scrape configs for cluster components (i.e. API server, node)
             # and services to allow each to use different authentication configs.

@@ -8,14 +8,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: istio-system
-  labels:
-    istio-injection: enabled
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: opentelemetry
+  name: observability
   labels:
     istio-injection: enabled
 ---
