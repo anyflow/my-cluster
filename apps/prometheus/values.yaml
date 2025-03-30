@@ -1,7 +1,9 @@
+commonMetaLabels:
+  app: prometheus
+  version: latest
+
 server:
   podLabels:
-    app: prometheus
-    version: latest
 
   resources:
     requests:

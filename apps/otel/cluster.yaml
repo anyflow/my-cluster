@@ -73,14 +73,14 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: otel-cluster-collector
-    namespace: cluster
+    namespace: observability
 ---
 # otel-cluster-collector service accounts are created automatically
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: otel-cluster
-  namespace: cluster
+  namespace: observability
   labels:
     app: otel-cluster-collector
 spec:
@@ -161,13 +161,13 @@ spec:
         verbosity: detailed # default is basic
 
       otlphttp/prometheus:
-        metrics_endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp/v1/metrics
+        metrics_endpoint: http://prometheus-server.observability.svc.cluster.local:80/api/v1/otlp/v1/metrics
         tls:
           insecure: true
 
       elasticsearch:
         endpoints:
-          - http://elasticsearch-es-http.cluster.svc.cluster.local:9200
+          - http://elasticsearch-es-http.observability.svc.cluster.local:9200
         logs_index: ""
         logs_dynamic_index:
           enabled: true

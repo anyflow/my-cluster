@@ -2,14 +2,19 @@ include .env
 
 export
 
+create-sidecar: init istio-sidecar app otel
+create-ambient: init istio-ambient app otel
+
 # WARN
 # kind version 0.27에서는 ambient mode 정상 동작하지 않음(ztunnel 설치 실패 - coreDNS crash 등)
 
 onetime: port_forward enlarge_open_file_count
 init: cluster-c helm_repo-c
-next: istio-ambient-c metallb-c config-c gateway-c
-app: docserver-c dockebi-c prometheus-c grafana-c jaeger-c kiali-c
-otel: otel-c otel-otlp-c otel-prometheus-c
+istio-sidecar: istio-sidecar-c metallb-c config-c gateway-c
+istio-ambient: istio-ambient-c metallb-c config-c gateway-c
+app: docserver-c dockebi-c prometheus-c grafana-c otel-c jaeger-c kiali-c
+otel: otel-otlp-c otel-prometheus-c
+
 
 cluster-c:
 	kind create cluster --config ./kind-config.yaml
@@ -68,8 +73,6 @@ helm_repo-c:
 
 namespace-c:
 	kubectl apply -f ./cluster/namespaces.yaml
-namespace-d:
-	kubectl delete -f ./cluster/namespaces.yaml
 
 config-c:
 # set default namespace
@@ -81,42 +84,23 @@ config-c:
 
 istio-sidecar-c:
 	kubectl apply -f ./cluster/namespaces.sidecar.yaml
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.0
+	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=1.25.0 --create-namespace --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0
 	kubectl apply -f ./cluster/telemetry.yaml
-
-istio-sidecar-d:
-	kubectl delete -f ./cluster/telemetry.yaml || true
-	helm uninstall istiod -n istio-system
-	helm uninstall istio-base -n istio-system
-	kubectl label namespaces istio-system istio-injection- || true
-	kubectl label namespaces cluster istio-injection- || true
-	kubectl label namespaces service istio-injection- || true
+	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
+	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 
 istio-ambient-c:
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
-	helm upgrade -i istio-base istio/base -n istio-system --create-namespace --wait
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.0 --create-namespace --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0 --set profile=ambient --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.0 --set profile=ambient --wait
 	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.25.0 --wait
 	kubectl apply -f ./cluster/namespaces.ambient.yaml
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/waypoints.yaml
-
-istio-ambient-d:
-	kubectl delete -f ./cluster/telemetry.yaml || true
-	helm uninstall ztunnel -n istio-system
-	helm uninstall istiod -n istio-system
-	helm uninstall istio-cni -n istio-system
-	istioctl waypoint delete -n istio-system --all || true
-	istioctl waypoint delete -n cluster --all || true
-	istioctl waypoint delete -n service --all || true
-	kubectl label namespaces istio-system istio.io/dataplane-mode-
-	kubectl label namespaces cluster istio.io/dataplane-mode-
-	kubectl label namespaces service istio.io/dataplane-mode-
-	kubectl label namespaces istio-system istio.io/use-waypoint-
-	kubectl label namespaces cluster istio.io/use-waypoint-
-	kubectl label namespaces service istio.io/use-waypoint-
+	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
+	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 
 gateway-c:
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
@@ -147,106 +131,87 @@ __create_dir:
 	sudo chown -R 1000:1000 $$CREATE_DIR_TARGET; \
 	sudo chmod -R 700 $$CREATE_DIR_TARGET
 
-docker_registry-c:
-	export CREATE_DIR_TARGET="./nodes/worker0/var/local-path-provisioner/docker-registry"; \
-	$(MAKE) __create_dir
-
-	kubectl apply -f ./apps/docker-registry/pv.yaml
-	kubectl apply -f ./apps/docker-registry/pvc.yaml
-
-	helm upgrade -i docker-registry phntom/docker-registry  -n cluster -f ./apps/docker-registry/values.yaml
-	@sed 's/docker-registry.anyflow.net/${DOMAIN_DOCKER_REGISTRY}/' ./apps/docker-registry/httproute.yaml | kubectl apply -f -
-docker_registry-d:
-	helm uninstall docker-registry -n cluster
-	kubectl delete -f ./apps/docker-registry/httproute.yaml
-
-
 docserver-c:
-	kubectl apply -k ./apps/docserver/deployment/overlays/prod
+	kubectl apply -k ./apps/docserver/deployment
 docserver-d:
-	kubectl delete -k ./apps/docserver/deployment/overlays/prod
+	kubectl delete -k ./apps/docserver/deployment
 docserver-r: docserver-d docserver-c
 
 
 dockebi-c:
-	kubectl apply -k ./apps/dockebi/deployment/overlays/prod
+	kubectl apply -k ./apps/dockebi/deployment
 dockebi-d:
-	kubectl delete -k ./apps/dockebi/deployment/overlays/prod
+	kubectl delete -k ./apps/dockebi/deployment
 dockebi-r: dockebi-d dockebi-c
 
 PROMETHEUS_POD_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
 PROMETHEUS_SERVICE_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
 
 prometheus-c:
-	helm upgrade -i prometheus prometheus/prometheus -n cluster -f ./apps/prometheus/values.yaml
+	helm upgrade -i prometheus prometheus/prometheus -n observability -f ./apps/prometheus/values.yaml
 	@sed 's/prometheus.anyflow.net/${DOMAIN_PROMETHEUS}/' ./apps/prometheus/httproute.yaml | kubectl apply -f -
 	kubectl apply -f ${PROMETHEUS_POD_MONITORS_CRD}
 	kubectl apply -f ${PROMETHEUS_SERVICE_MONITORS_CRD}
+	kubectl wait --namespace observability \
+				--for=condition=ready pod \
+				--selector=app.kubernetes.io/name=prometheus \
+				--timeout=300s
 prometheus-d:
 	kubectl delete -f ${PROMETHEUS_POD_MONITORS_CRD} || true
 	kubectl delete -f ${PROMETHEUS_SERVICE_MONITORS_CRD} || true
 	helm uninstall prometheus
 	kubectl delete -f ./apps/prometheus/httproute.yaml
-	kubectl wait --namespace cluster \
+	kubectl wait --namespace observability \
 				--for=condition=ready pod \
 				--selector=app.kubernetes.io/name=prometheus \
 				--timeout=300s
 prometheus-r: prometheus-d prometheus-c
 
 grafana-c:
-	helm upgrade -i grafana grafana/grafana -n cluster -f ./apps/grafana/values.yaml
+	helm upgrade -i grafana grafana/grafana -n observability -f ./apps/grafana/values.yaml
 	@sed 's/grafana.anyflow.net/${DOMAIN_GRAFANA}/' ./apps/grafana/httproute.yaml | kubectl apply -f -
-	kubectl wait --namespace cluster \
+	kubectl wait --namespace observability \
 				--for=condition=ready pod \
 				--selector=app.kubernetes.io/name=grafana \
 				--timeout=300s
 grafana-d:
-	helm uninstall grafana
+	helm uninstall grafana -n observability
 	kubectl delete -f ./apps/grafana/httproute.yaml
 
 jaeger-c:
-	helm upgrade -i -n istio-system jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.4.0
+	helm upgrade -i -n observability jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.4.1
 	kubectl apply -f ./apps/jaeger/httproute.yaml
-	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 2.6.0
-	kubectl apply -f apps/kiali/kiali.yaml
-	kubectl apply -f apps/kiali/httproute.yaml
-	kubectl wait --namespace istio-system \
-				--for=condition=ready pod \
-				--selector=app.kubernetes.io/name=jaeger \
-				--timeout=150s
 jaeger-d:
-	helm uninstall jaeger -n istio-system
+	helm uninstall jaeger -n observability
 	kubectl delete -f ./apps/jaeger/httproute.yaml
 jaeger-r: jaeger-d jaeger-c
 
 kiali-c:
-	helm upgrade -i -n istio-system kiali-operator kiali/kiali-operator --version 2.6.0
-	kubectl apply -f apps/kiali/kiali.yaml
+	helm upgrade -i -n istio-system kiali-server kiali/kiali-server -f ./apps/kiali/values.yaml --version 2.7.1
 	kubectl apply -f apps/kiali/httproute.yaml
 	kubectl wait --namespace istio-system \
 				--for=condition=ready pod \
 				--selector=app.kubernetes.io/name=kiali \
-				--timeout=150s
+				--timeout=300s
 kiali-d:
 	kubectl delete -f apps/kiali/httproute.yaml
-	kubectl delete -f apps/kiali/kiali.yaml
-	helm uninstall kiali-operator -n istio-system
+	helm uninstall kiali-server -n istio-system
 kiali-r: kiali-d kiali-c
 
 
 otel-c:
-	helm upgrade -n opentelemetry -i opentelemetry-operator open-telemetry/opentelemetry-operator \
+	helm upgrade -n observability -i opentelemetry-operator open-telemetry/opentelemetry-operator \
 	--set "manager.collectorImage.repository=otel/opentelemetry-collector-contrib" \
 	--set admissionWebhooks.certManager.enabled=false \
 	--set admissionWebhooks.autoGenerateCert.enabled=true
 	kubectl apply -f apps/otel/rbac.yaml
-	kubectl wait --namespace opentelemetry \
+	kubectl wait --namespace observability \
 				--for=condition=ready pod \
 				--selector=app.kubernetes.io/name=opentelemetry-operator \
 				--timeout=300s
 otel-d:
-	kubectl delete -f apps/otel/rbac.yaml
-	helm uninstall opentelemetry-operator
+	kubectl delete -f apps/otel/rbac.yaml || true
+	helm uninstall opentelemetry-operator -n observability
 
 otel-prometheus-c:
 	kubectl apply -f apps/otel/prometheus.yaml
@@ -276,6 +241,25 @@ cert_manager-c:
 
 cert_manager-d:
 	kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+
+
+metric-server-c:
+	kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+	kubectl patch deployment metrics-server -n kube-system --type='json' \
+  -p '[{"op":"add", "path":"/spec/template/spec/containers/0/args/-", "value":"--kubelet-insecure-tls"}]'
+
+docker_registry-c:
+	export CREATE_DIR_TARGET="./nodes/worker0/var/local-path-provisioner/docker-registry"; \
+	$(MAKE) __create_dir
+
+	kubectl apply -f ./apps/docker-registry/pv.yaml
+	kubectl apply -f ./apps/docker-registry/pvc.yaml
+
+	helm upgrade -i docker-registry phntom/docker-registry  -n cluster -f ./apps/docker-registry/values.yaml
+	@sed 's/docker-registry.anyflow.net/${DOMAIN_DOCKER_REGISTRY}/' ./apps/docker-registry/httproute.yaml | kubectl apply -f -
+docker_registry-d:
+	helm uninstall docker-registry -n cluster
+	kubectl delete -f ./apps/docker-registry/httproute.yaml
 
 
 eck-c:
@@ -351,8 +335,3 @@ jenkins-d:
 	kubectl delete -f ./apps/jenkins/httproute.yaml
 	kubectl delete -f ./apps/jenkins/pvc.yaml
 	kubectl delete -f ./apps/jenkins/pv.yaml
-
-metric-server-c:
-	kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-	kubectl patch deployment metrics-server -n kube-system --type='json' \
-  -p '[{"op":"add", "path":"/spec/template/spec/containers/0/args/-", "value":"--kubelet-insecure-tls"}]'

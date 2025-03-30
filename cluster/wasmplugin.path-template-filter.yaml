@@ -23,6 +23,8 @@ spec:
         paths:
           /dockebi/v1/stuff: {}
           /dockebi/v1/stuff/{id_}: {}
+          /dockebi/v1/error/{status_code}: {}
+          /dockebi/v1/health: {}
           /dockebi/v1/stuff/{id_}/child/{child_id}/hello: {}
       - name: userservice
         paths:

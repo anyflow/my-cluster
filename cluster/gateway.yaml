@@ -33,6 +33,38 @@ spec:
             name: default-tls
             namespace: cluster
 # ---
+# apiVersion: networking.istio.io/v1beta1
+# kind: Gateway
+# metadata:
+#   name: gateway
+#   namespace: cluster
+#   labels:
+#     app: gateway
+#     version: latest
+#   annotations:
+#     service.beta.kubernetes.io/load-balancer-ip: "172.18.255.200"
+# spec:
+#   selector:
+#     app: gateway
+#     version: latest
+#   servers:
+#     - port:
+#         number: 80
+#         name: http
+#         protocol: HTTP
+#       hosts:
+#         - "*.anyflow.net"
+#     - port:
+#         number: 443
+#         name: https
+#         protocol: HTTPS
+#       hosts:
+#         - "*.anyflow.net"
+#       tls:
+#         mode: SIMPLE
+#         credentialName: default-tls
+# ---
+# ---
 # apiVersion: security.istio.io/v1beta1
 # kind: AuthorizationPolicy
 # metadata:

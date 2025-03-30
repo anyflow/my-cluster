@@ -5,22 +5,16 @@ metadata:
   labels:
     istio.io/dataplane-mode: ambient
     istio.io/use-waypoint: waypoint-cluster
+    istio.io/ingress-use-waypoint: "true"
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: istio-system
+  name: observability
   labels:
     istio.io/dataplane-mode: ambient
-    istio.io/use-waypoint: waypoint-istio-system
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: opentelemetry
-  labels:
-    istio.io/dataplane-mode: ambient
-    istio.io/use-waypoint: waypoint-opentelemetry
+    istio.io/use-waypoint: waypoint-observability
+    istio.io/ingress-use-waypoint: "true"
 ---
 apiVersion: v1
 kind: Namespace
@@ -29,11 +23,4 @@ metadata:
   labels:
     istio.io/dataplane-mode: ambient
     istio.io/use-waypoint: waypoint-service
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kube-system
-  labels:
-    istio.io/dataplane-mode: ambient
-    istio.io/use-waypoint: waypoint-kube-system
+    istio.io/ingress-use-waypoint: "true"

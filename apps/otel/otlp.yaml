@@ -3,7 +3,7 @@ apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: otlp
-  namespace: opentelemetry
+  namespace: observability
   labels:
     app: otlp-collector
     version: 0.110.0
@@ -147,7 +147,7 @@ spec:
       #   tls:
       #     insecure: true
       prometheusremotewrite: # for pushing metrics to prometheus instead of pulling of right above
-        endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/write
+        endpoint: http://prometheus-server.observability.svc.cluster.local:80/api/v1/write
         # tls:
         #   insecure: true
         target_info:
@@ -168,13 +168,13 @@ spec:
           max_elapsed_time: 300s # (default = 300s): Is the maximum amount of time spent trying to send a batch; ignored if enabled is false. If set to 0, the retries are never stopped.
 
       otlp/jaeger:
-        endpoint: jaeger-collector.istio-system.svc.cluster.local:4317
+        endpoint: jaeger-collector.observability.svc.cluster.local:4317
         tls:
           insecure: true
 
       elasticsearch:
         endpoints:
-          - http://elasticsearch-es-http.cluster.svc.cluster.local:9200
+          - http://elasticsearch-es-http.observability.svc.cluster.local:9200
         logs_index: "istio-access-log"
         logs_dynamic_index:
           enabled: true

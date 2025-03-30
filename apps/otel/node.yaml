@@ -20,13 +20,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: otel-node-collector
-    namespace: cluster
+    namespace: observability
 ---
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: otel-node
-  namespace: cluster
+  namespace: observability
   labels:
     app: otel-node-collector
 spec:
@@ -132,6 +132,6 @@ spec:
         verbosity: basic # detailed, basic
 
       otlphttp/prometheus:
-        metrics_endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp/v1/metrics
+        metrics_endpoint: http://prometheus-server.observability.svc.cluster.local:80/api/v1/otlp/v1/metrics
         tls:
           insecure: true
