@@ -1,0 +1,13 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps
+  namespace: cluster
+spec:
+  project: default
+  destination:
+    namespace: cluster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

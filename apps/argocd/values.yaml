@@ -5,14 +5,32 @@ notifications:
   enabled: false
 
 applicationSet:
-  enabled: false
+  enabled: true
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
 
 redis:
-  enabled: false
+  enabled: true
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  persistence:
+    enabled: false
+  usePassword: false
 
 configs:
   params:
     server.insecure: true # Prevent recursive https requesting when using httproute instead of ingress
+    server.enable.redis: true
 
   service:
     type: ClusterIP
@@ -20,21 +38,12 @@ configs:
 
   ingress:
     enabled: false
-    # hosts:
-    #   - argocd.anyflow.net
-    # annotations:
-    #   nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    #   nginx.ingress.kubernetes.io/ssl-passthrough: "true"
-    # path: /
-    # pathType: Prefix
-    # ingressClassName: nginx
-    # tls:
-    #   - secretName: default-tls
-    #     hosts:
-    #       - argocd.anyflow.net
+
+  secret:
+    argocdServerAdminPassword: "$2y$10$awrl2wTQ0HYLbGtYx9Bs4OOsyFW48DW9WZn6hnFiTiQuTA.nBEOWS"
 
 server:
-  resources: # to prevent too much resource comsumption
+  resources:
     limits:
       cpu: 100m
       memory: 128Mi
@@ -46,25 +55,34 @@ server:
     resources:
       limits:
         cpu: 50m
-        memory: 128Mi
+        memory: 64Mi
       requests:
         cpu: 10m
-        memory: 64Mi
+        memory: 32Mi
 
 controller:
-  resources: # to prevent too much resource comsumption
+  resources:
     limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 250m
+      cpu: 200m
       memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
 
 repoServer:
-  resources: # to prevent too much resource comsumption
+  resources:
     limits:
       cpu: 50m
-      memory: 128Mi
+      memory: 64Mi
     requests:
       cpu: 10m
-      memory: 64Mi
+      memory: 32Mi
+
+  volumeMounts:
+    - name: ssh-key
+      mountPath: /app/config/my-ssh
+      readOnly: true
+  volumes:
+    - name: ssh-key
+      secret:
+        secretName: git-secret

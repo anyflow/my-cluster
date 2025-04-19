@@ -79,23 +79,39 @@ config-c:
 	kubectl config set-context --current --namespace=cluster || true
 # install default tls secret
 	kubectl create secret tls default-tls -n cluster --cert=./cert/fullchain.pem --key=./cert/privkey.pem || true
+# install git secret
+	kubectl create secret generic git-secret -n cluster --from-file=${HOME}/.ssh/id_rsa
 # set metallb config
 	kubectl apply -f ./cluster/metallb-config.yaml || true
 
+argocd-c:
+	helm upgrade -i argocd argo/argo-cd -n cluster -f ./apps/argocd/values.yaml
+	@sed 's/argocd.anyflow.net/${DOMAIN_ARGOCD}/' ./apps/argocd/httproute.yaml | kubectl apply -f -
+argocd-d:
+	helm uninstall argocd
+	kubectl delete -f ./apps/argocd/httproute.yaml
+argocd-l:
+	argocd login argocd.anyflow.net --username admin --password ${ARGOCD_PASSWORD} --insecure
+argocd-cli-c:
+	VERSION=$(curl --silent "https://api.github.com/repos/argoproj/argo-cd/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
+	curl -sSL -o argocd-linux-amd64 "https://github.com/argoproj/argo-cd/releases/download/$VERSION/argocd-linux-amd64"
+	chmod +x argocd-linux-amd64
+	sudo mv argocd-linux-amd64 /usr/local/bin/argocd
+
 istio-sidecar-c:
 	kubectl apply -f ./cluster/namespaces.sidecar.yaml
-	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=1.25.0 --create-namespace --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0
+	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=1.25.2 --create-namespace --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.sidecar.yaml --version 1.25.2
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 
 istio-ambient-c:
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.0 --create-namespace --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.yaml --version 1.25.0 --set profile=ambient --wait
-	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.0 --set profile=ambient --wait
-	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.25.0 --wait
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.2 --create-namespace --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.25.2 --set profile=ambient --wait
+	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.2 --set profile=ambient --wait
+	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.25.2 --wait
 	kubectl apply -f ./cluster/namespaces.ambient.yaml
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/waypoints.yaml
@@ -189,6 +205,7 @@ jaeger-r: jaeger-d jaeger-c
 kiali-c:
 	helm upgrade -i -n istio-system kiali-server kiali/kiali-server -f ./apps/kiali/values.yaml --version 2.7.1
 	kubectl apply -f apps/kiali/httproute.yaml
+	kubectl apply -f apps/kiali/destinationrule.yaml
 	kubectl wait --namespace istio-system \
 				--for=condition=ready pod \
 				--selector=app.kubernetes.io/name=kiali \
@@ -312,14 +329,6 @@ kafka_client-d:
 
 exec_kafka_client:
 	kubectl exec -it -n cluster kafka-client -- bash
-
-argocd-c:
-	helm upgrade -i argocd argo/argo-cd -n cluster -f ./apps/argocd/values.yaml
-	@sed 's/argocd.anyflow.net/${DOMAIN_ARGOCD}/' ./apps/argocd/httproute.yaml | kubectl apply -f -
-argocd-d:
-	helm uninstall argocd
-	kubectl delete -f ./apps/argocd/httproute.yaml
-
 
 jenkins-c:
 	export CREATE_DIR_TARGET="./nodes/worker0/var/local-path-provisioner/jenkins"; \

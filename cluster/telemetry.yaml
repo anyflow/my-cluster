@@ -45,7 +45,8 @@ spec:
               value: request.headers['x-path-template']
             request_service:
               value: request.headers['x-service-name']
-
+            request_protocol_ex:
+              value: request.protocol
   # metrics:
   #   - providers:
   #       - name: prometheus

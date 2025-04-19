@@ -72,7 +72,7 @@ spec:
             - batch
           exporters:
             - debug
-            - elasticsearch
+            # - elasticsearch
 
         metrics:
           receivers:
@@ -172,13 +172,13 @@ spec:
         tls:
           insecure: true
 
-      elasticsearch:
-        endpoints:
-          - http://elasticsearch-es-http.observability.svc.cluster.local:9200
-        logs_index: "istio-access-log"
-        logs_dynamic_index:
-          enabled: true
-        logstash_format:
-          enabled: true
-        user: anyflow
-        password: mycluster
+      # elasticsearch:
+      #   endpoints:
+      #     - http://elasticsearch-es-http.observability.svc.cluster.local:9200
+      #   logs_index: "istio-access-log"
+      #   logs_dynamic_index:
+      #     enabled: true
+      #   logstash_format:
+      #     enabled: true
+      #   user: anyflow
+      #   password: mycluster

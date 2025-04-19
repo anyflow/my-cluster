@@ -1,0 +1,70 @@
+pilot:
+  env:
+    # Enable automatic address allocation, optional. Refer https://istio.io/v1.24/docs/ops/configuration/traffic-management/dns-proxy/#dns-auto-allocation-v2
+    PILOT_ENABLE_IP_AUTOALLOCATE: "true"
+
+  traceSampling: 1 # sampling percentage for tracing.
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 500m
+      memory: 1024Mi
+  # autoscaleEnabled: true
+  # autoscaleMin: 1
+  # autoscaleMax: 5
+  # autoscaleBehavior: {}
+  # replicaCount: 1
+  # rollingMaxSurge: 100%
+  # rollingMaxUnavailable: 25%
+  # deploymentLabels: {}
+  # podLabels: {}
+
+  autoscaleEnabled: true
+  autoscaleMin: 1
+  autoscaleMax: 10
+
+  podLabels:
+    thinq.service: "tcn-service-mesh"
+  podAnnotations:
+    thinq.service.title: "TCN Service Mesh"
+
+global:
+  istioNamespace: istio-system
+
+  # proxy:
+  #   resources:
+  #     requests:
+  #       cpu: 10m
+  #       memory: 16Mi
+  #     limits:
+  #       cpu: 250m
+  #       memory: 64Mi
+
+meshConfig:
+  h2UpgradePolicy: UPGRADE
+  enableTracing: true
+  # outboundTrafficPolicy:
+  #   mode: REGISTRY_ONLY
+
+  defaultConfig: # ProxyConfig.
+    holdApplicationUntilProxyStarts: true
+    proxyMetadata:
+      # Enable basic DNS proxying
+      ISTIO_META_DNS_CAPTURE: "true"
+
+  extensionProviders:
+    - name: otelTrace
+      opentelemetry:
+        service: otlp-collector.observability.svc.cluster.local
+        port: 4317
+    - name: otelLog
+      envoyOtelAls:
+        service: otlp-collector.observability.svc.cluster.local
+        port: 4317
+        logFormat: # https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig-ExtensionProvider-EnvoyOpenTelemetryLogProvider-LogFormat
+          labels: # https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#config-access-log-format-dictionaries
+            status: "%RESPONSE_CODE%"
+            Body: "%LOCAL_REPLY_BODY%"

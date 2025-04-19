@@ -1,0 +1,14 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dockebi
+  namespace: service
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:anyflow/dockebi.git
+    targetRevision: HEAD
+    path: deployment
+  destination:
+    name: dockebi
+    namespace: service
