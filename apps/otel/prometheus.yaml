@@ -145,6 +145,9 @@ spec:
     receivers:
       prometheus:
         config:
+          global:
+            scrape_interval: 10s # default 1m
+            scrape_timeout: 10s # default
           scrape_configs:
             - job_name: "otel-collector"
               scrape_interval: 10s

@@ -16,6 +16,8 @@ spec:
   phase: STATS # Applies the filter before the istio.stats filter in the Envoy filter chain.
   failStrategy: FAIL_OPEN # Configures the filter to be non-critical; bypasses the filter on fatal errors.
   #  priority: 10
+  match:
+    - mode: CLIENT_AND_SERVER
   pluginConfig:
     cacheSize: 5
     services:
