@@ -353,3 +353,9 @@ bookinfo-d:
 	kubectl delete -f apps/bookinfo/httproute.yaml
 	kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo-versions.yaml -n service
 	kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo.yaml -n service
+
+customers-c:
+	kubectl apply -k ./apps/customers
+customers-d:
+	kubectl delete -k ./apps/customers
+	kubectl delete authorizationpolicies.security.istio.io -n service allow-web-frontend-customers allow-ingress-frontend deny-all
