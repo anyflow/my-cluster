@@ -149,6 +149,45 @@ spec:
             scrape_interval: 10s # default 1m
             scrape_timeout: 10s # default
           scrape_configs:
+            - job_name: istiod
+              kubernetes_sd_configs:
+                - role: endpoints
+                  namespaces:
+                    names:
+                      - istio-system
+              relabel_configs:
+                - source_labels:
+                    [
+                      __meta_kubernetes_service_name,
+                      __meta_kubernetes_endpoint_port_name,
+                    ]
+                  action: keep
+                  regex: istiod;http-monitoring
+
+            - job_name: istio-proxy
+              metrics_path: /stats/prometheus
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_container_port_name]
+                  action: keep
+                  regex: .*-envoy-prom
+                # 서비스 이름 타겟팅 추가
+                - source_labels:
+                    [__meta_kubernetes_namespace, __meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: __address__
+                  replacement: $$1.$$2.svc.cluster.local:15090
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: pod
+                - source_labels: [__meta_kubernetes_pod_phase]
+                  regex: Pending|Succeeded|Failed|Completed
+                  action: drop
+
             - job_name: "otel-collector"
               scrape_interval: 10s
               static_configs:
@@ -492,6 +531,10 @@ spec:
                     [__meta_kubernetes_pod_annotation_prometheus_io_scrape_slow]
                   action: drop
                   regex: true
+                # istio-proxy Pod 제외
+                - source_labels: [__meta_kubernetes_pod_label_istio]
+                  action: drop
+                  regex: proxy
                 - source_labels:
                     [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
                   action: replace

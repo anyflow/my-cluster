@@ -203,7 +203,7 @@ jaeger-d:
 jaeger-r: jaeger-d jaeger-c
 
 kiali-c:
-	helm upgrade -i -n istio-system kiali-server kiali/kiali-server -f ./apps/kiali/values.yaml --version 2.7.1
+	helm upgrade -i -n istio-system kiali-server kiali/kiali-server -f ./apps/kiali/values.yaml --version 2.8.0
 	kubectl apply -f apps/kiali/httproute.yaml
 	kubectl apply -f apps/kiali/destinationrule.yaml
 	kubectl wait --namespace istio-system \
@@ -344,3 +344,12 @@ jenkins-d:
 	kubectl delete -f ./apps/jenkins/httproute.yaml
 	kubectl delete -f ./apps/jenkins/pvc.yaml
 	kubectl delete -f ./apps/jenkins/pv.yaml
+
+bookinfo-c:
+	kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo.yaml -n service
+	kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo-versions.yaml -n service
+	kubectl apply -f apps/bookinfo/httproute.yaml
+bookinfo-d:
+	kubectl delete -f apps/bookinfo/httproute.yaml
+	kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo-versions.yaml -n service
+	kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo.yaml -n service
