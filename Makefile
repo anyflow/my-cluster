@@ -359,3 +359,11 @@ customers-c:
 customers-d:
 	kubectl delete -k ./apps/customers
 	kubectl delete authorizationpolicies.security.istio.io -n service allow-web-frontend-customers allow-ingress-frontend deny-all
+
+
+istioctl-i:
+	curl -L https://istio.io/downloadIstio | sh - && \
+		sudo mv -f istio-1.25.2/bin/istioctl /usr/local/bin/istioctl && \
+		sudo mv istio-1.25.2/tools/_istioctl ~/_istioctl && \
+		rm -rf istio-1.25.2 && \
+		chmod +x /usr/local/bin/istioctl
