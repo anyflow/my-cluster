@@ -1,4 +1,4 @@
-apiVersion: gateway.networking.k8s.io/v1
+apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
   name: gateway
@@ -7,31 +7,59 @@ metadata:
     app: gateway
     version: latest
 spec:
-  gatewayClassName: istio
-  addresses:
-    - type: IPAddress
-      value: 172.18.255.200
-  listeners:
-    - name: http-anyflow-net
-      hostname: "*.anyflow.net"
-      port: 80
-      protocol: HTTP
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-anyflow-net
-      hostname: "*.anyflow.net"
-      port: 443
-      protocol: HTTPS
-      allowedRoutes:
-        namespaces:
-          from: All
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*.anyflow.net"
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "*.anyflow.net"
       tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: default-tls
-            namespace: cluster
+        mode: SIMPLE
+        credentialName: default-tls
+# ---
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: Gateway
+# metadata:
+#   name: gateway
+#   namespace: cluster
+#   labels:
+#     app: gateway
+#     version: latest
+# spec:
+#   gatewayClassName: istio
+#   addresses:
+#     - type: IPAddress
+#       value: 172.18.255.200
+#   listeners:
+#     - name: http-anyflow-net
+#       hostname: "*.anyflow.net"
+#       port: 80
+#       protocol: HTTP
+#       allowedRoutes:
+#         namespaces:
+#           from: All
+#     - name: https-anyflow-net
+#       hostname: "*.anyflow.net"
+#       port: 443
+#       protocol: HTTPS
+#       allowedRoutes:
+#         namespaces:
+#           from: All
+#       tls:
+#         mode: Terminate
+#         certificateRefs:
+#           - kind: Secret
+#             name: default-tls
+#             namespace: cluster
 # ---
 # apiVersion: networking.istio.io/v1beta1
 # kind: Gateway

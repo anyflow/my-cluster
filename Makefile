@@ -100,28 +100,30 @@ argocd-cli-c:
 
 istio-sidecar-c:
 	kubectl apply -f ./cluster/namespaces.sidecar.yaml
-	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=1.25.2 --create-namespace --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.sidecar.yaml --version 1.25.2
+	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=1.26.0 --create-namespace --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.sidecar.yaml --version 1.26.0
+	helm upgrade -i istio-ingressgateway istio/gateway -n cluster --set service.type=LoadBalancer --version 1.26.0
 	kubectl apply -f ./cluster/telemetry.yaml
-	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
+	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 
 istio-ambient-c:
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.25.2 --create-namespace --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.25.2 --set profile=ambient --wait
-	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.25.2 --set profile=ambient --wait
-	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.25.2 --wait
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.26.0 --create-namespace --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.26.0 --set profile=ambient --wait
+	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.26.0 --set profile=ambient --wait
+	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.26.0 --wait
+	helm upgrade -i istio-ingressgateway istio/gateway -n cluster --set service.type=LoadBalancer --version 1.26.0
 	kubectl apply -f ./cluster/namespaces.ambient.yaml
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/waypoints.yaml
-	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
+	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 
 gateway-c:
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
 	kubectl apply -f ./cluster/gateway.yaml || true
-#	kubectl apply -f ./cluster/wasmplugin.path-template-filter.yaml
+#	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
 #	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 # install ingress
 # 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
@@ -218,6 +220,7 @@ kiali-r: kiali-d kiali-c
 
 otel-c:
 	helm upgrade -n observability -i opentelemetry-operator open-telemetry/opentelemetry-operator \
+	 --version 0.86.4 \
 	--set "manager.collectorImage.repository=otel/opentelemetry-collector-contrib" \
 	--set admissionWebhooks.certManager.enabled=false \
 	--set admissionWebhooks.autoGenerateCert.enabled=true
@@ -363,7 +366,7 @@ customers-d:
 
 istioctl-i:
 	curl -L https://istio.io/downloadIstio | sh - && \
-		sudo mv -f istio-1.25.2/bin/istioctl /usr/local/bin/istioctl && \
-		sudo mv istio-1.25.2/tools/_istioctl ~/_istioctl && \
-		rm -rf istio-1.25.2 && \
+		sudo mv -f istio-1.26.0/bin/istioctl /usr/local/bin/istioctl && \
+		sudo mv istio-1.26.0/tools/_istioctl ~/_istioctl && \
+		rm -rf istio-1.26.0 && \
 		chmod +x /usr/local/bin/istioctl

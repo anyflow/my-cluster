@@ -1,24 +1,40 @@
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
+kind: VirtualService
+apiVersion: networking.istio.io/v1
 metadata:
   name: prometheus
   namespace: observability
 spec:
-  parentRefs:
-    - name: gateway
-      namespace: cluster
-  hostnames:
+  gateways:
+    - cluster/gateway
+  hosts:
     - prometheus.anyflow.net
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix #Implementation-specific, PathPrefix, Exact
-            value: /
-      backendRefs:
-        - name: prometheus-server
-          port: 80
-    - filters:
-        - type: RequestRedirect
-          requestRedirect:
-            scheme: https
-            statusCode: 301
+  http:
+    - route:
+        - destination:
+            host: prometheus-server.observability.svc.cluster.local
+            port:
+              number: 80
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: HTTPRoute
+# metadata:
+#   name: prometheus
+#   namespace: observability
+# spec:
+#   parentRefs:
+#     - name: gateway
+#       namespace: cluster
+#   hostnames:
+#     - prometheus.anyflow.net
+#   rules:
+#     - matches:
+#         - path:
+#             type: PathPrefix #Implementation-specific, PathPrefix, Exact
+#             value: /
+#       backendRefs:
+#         - name: prometheus-server
+#           port: 80
+#     - filters:
+#         - type: RequestRedirect
+#           requestRedirect:
+#             scheme: https
+#             statusCode: 301

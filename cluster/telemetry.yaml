@@ -41,6 +41,8 @@ spec:
           tagOverrides:
             request_method:
               value: request.method
+            api_endpoint:
+              value: request.headers['x-api-endpoint']
             request_path:
               value: request.headers['x-path-template']
             request_service:

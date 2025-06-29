@@ -1,90 +1,127 @@
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
+apiVersion: networking.istio.io/v1
+kind: VirtualService
 metadata:
   name: docserver
   namespace: service
 spec:
-  parentRefs:
-    - name: gateway
-      namespace: cluster
-  hostnames:
+  hosts:
     - api.anyflow.net
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /__openapi
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /contents/apispec
-            statusCode: 302
-    - matches:
-        - path:
-            type: Exact #Implementation-specific, PathPrefix, Exact
-            value: /
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: /contents/apispec/swaggerui/index.html
-            statusCode: 302
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /apispec
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /contents/apispec/swaggerui
-            statusCode: 302
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /swaggerui
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /contents/apispec/swaggerui
-            statusCode: 302
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /redoc
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /contents/apispec/redoc
-            statusCode: 302
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /changelog
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /contents/changelog
-            statusCode: 302
-    - matches:
-        - path:
-            type: PathPrefix #Implementation-specific, PathPrefix, Exact
-            value: /
-      backendRefs:
-        - name: docserver
-          port: 80
-    - filters:
-        - type: RequestRedirect
-          requestRedirect:
-            scheme: https
-            statusCode: 301
+  gateways:
+    - cluster/gateway
+  http:
+    - match:
+        - scheme:
+            exact: http
+      redirect:
+        scheme: https
+        redirectCode: 301
+    - match:
+        - uri:
+            exact: /__openapi/openapi.yaml
+      redirect:
+        uri: /contents/apispec/openapi.yaml
+        redirectCode: 301
+    - match:
+        - uri:
+            exact: /
+      redirect:
+        uri: /contents/apispec/swaggerui/index.html
+        redirectCode: 301
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: docserver.service.svc.cluster.local
+            port:
+              number: 80
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: HTTPRoute
+# metadata:
+#   name: docserver
+#   namespace: service
+# spec:
+#   parentRefs:
+#     - name: gateway
+#       namespace: cluster
+#   hostnames:
+#     - api.anyflow.net
+#   rules:
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /__openapi
+#       filters:
+#         - type: RequestRedirect
+#           requestRedirect:
+#             path:
+#               type: ReplacePrefixMatch
+#               replacePrefixMatch: /contents/apispec
+#             statusCode: 302
+#     - matches:
+#         - path:
+#             type: Exact #Implementation-specific, PathPrefix, Exact
+#             value: /
+#       filters:
+#         - type: RequestRedirect
+#           requestRedirect:
+#             path:
+#               type: ReplaceFullPath
+#               replaceFullPath: /contents/apispec/swaggerui/index.html
+#             statusCode: 302
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /apispec
+#       filters:
+#         - type: RequestRedirect
+#           requestRedirect:
+#             path:
+#               type: ReplacePrefixMatch
+#               replacePrefixMatch: /contents/apispec/swaggerui
+#             statusCode: 302
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /swaggerui
+#       filters:
+#         - type: RequestRedirect
+#           requestRedirect:
+#             path:
+#               type: ReplacePrefixMatch
+#               replacePrefixMatch: /contents/apispec/swaggerui
+#             statusCode: 302
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /redoc
+#       filters:
+#         - type: RequestRedirect
+#           requestRedirect:
+#             path:
+#               type: ReplacePrefixMatch
+#               replacePrefixMatch: /contents/apispec/redoc
+#             statusCode: 302
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /changelog
+#       filters:
+#         - type: RequestRedirect
+#           requestRedirect:
+#             path:
+#               type: ReplacePrefixMatch
+#               replacePrefixMatch: /contents/changelog
+#             statusCode: 302
+#     - matches:
+#         - path:
+#             type: PathPrefix #Implementation-specific, PathPrefix, Exact
+#             value: /
+#       backendRefs:
+#         - name: docserver
+#           port: 80
+#     - filters:
+#         - type: RequestRedirect
+#           requestRedirect:
+#             scheme: https
+#             statusCode: 301
