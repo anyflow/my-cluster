@@ -24,7 +24,7 @@ spec:
       serviceAccountName: docserver
       securityContext: {}
       containers:
-        - image: anyflow/docserver:latest
+        - image: ghcr.io/anyflow/docserver:latest
           imagePullPolicy: Always
           name: docserver
           ports:

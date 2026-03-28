@@ -2,23 +2,32 @@ include .env
 
 export
 
-create-sidecar: init istio-sidecar app otel
-create-ambient: init istio-ambient app otel
+create-sidecar: init
+	$(MAKE) enlarge_open_file_count
+	$(MAKE) port_forward
+	$(MAKE) istio-sidecar
+	$(MAKE) app
 
-# WARN
-# kind version 0.27에서는 ambient mode 정상 동작하지 않음(ztunnel 설치 실패 - coreDNS crash 등)
+create-ambient: init
+	$(MAKE) enlarge_open_file_count
+	$(MAKE) port_forward
+	$(MAKE) istio-ambient
+	$(MAKE) app
+INGRESS_HTTP_NODEPORT ?= 30080
+INGRESS_HTTPS_NODEPORT ?= 30443
 
-onetime: port_forward enlarge_open_file_count
 init: cluster-c helm_repo-c
-istio-sidecar: istio-sidecar-c metallb-c config-c gateway-c
-istio-ambient: istio-ambient-c metallb-c config-c gateway-c
-app: docserver-c dockebi-c prometheus-c grafana-c otel-c jaeger-c kiali-c
+istio-sidecar: istio-sidecar-c config-c gateway-c
+istio-ambient: istio-ambient-c config-c gateway-c
+app: docserver-c dockebi-c
+observability:  prometheus-c grafana-c otel-c jaeger-c kiali-c
 otel: otel-otlp-c otel-prometheus-c
 
 
 cluster-c:
 	kind create cluster --config ./kind-config.yaml
 cluster-d:
+	-$(MAKE) port_forward_clean
 	kind delete cluster -n my-cluster
 
 cilium-c:
@@ -41,20 +50,19 @@ enlarge_open_file_count:
 	sudo sysctl -w fs.inotify.max_queued_events=2099999999
 
 port_forward:
-	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 80 -j ACCEPT
-	sudo iptables -t nat -A DOCKER -p tcp --dport 80 -j DNAT --to-destination 172.18.255.200:80
-	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 80 -j MASQUERADE
+	@INGRESS_IP=$$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' my-cluster-worker); \
+	sudo iptables -C DOCKER -d $$INGRESS_IP/32 -p tcp --dport $(INGRESS_HTTP_NODEPORT) -j ACCEPT 2>/dev/null || sudo iptables -I DOCKER 2 -d $$INGRESS_IP/32 -p tcp --dport $(INGRESS_HTTP_NODEPORT) -j ACCEPT; \
+	sudo iptables -C DOCKER -d $$INGRESS_IP/32 -p tcp --dport $(INGRESS_HTTPS_NODEPORT) -j ACCEPT 2>/dev/null || sudo iptables -I DOCKER 3 -d $$INGRESS_IP/32 -p tcp --dport $(INGRESS_HTTPS_NODEPORT) -j ACCEPT; \
+	sudo iptables -t nat -C DOCKER -p tcp --dport 80 -j DNAT --to-destination $$INGRESS_IP:$(INGRESS_HTTP_NODEPORT) 2>/dev/null || sudo iptables -t nat -I DOCKER 3 -p tcp --dport 80 -j DNAT --to-destination $$INGRESS_IP:$(INGRESS_HTTP_NODEPORT); \
+	sudo iptables -t nat -C DOCKER -p tcp --dport 443 -j DNAT --to-destination $$INGRESS_IP:$(INGRESS_HTTPS_NODEPORT) 2>/dev/null || sudo iptables -t nat -I DOCKER 4 -p tcp --dport 443 -j DNAT --to-destination $$INGRESS_IP:$(INGRESS_HTTPS_NODEPORT); \
+	echo "port_forward -> $$INGRESS_IP http=$(INGRESS_HTTP_NODEPORT) https=$(INGRESS_HTTPS_NODEPORT)"
 
-	sudo iptables -A DOCKER -p tcp -s 0.0.0.0/0 -d 172.18.255.200 --dport 443 -j ACCEPT
-	sudo iptables -t nat -A DOCKER -p tcp --dport 443 -j DNAT --to-destination 172.18.255.200:443
-	sudo iptables -t nat -A POSTROUTING -s 172.18.255.200 -d 172.18.255.200 -p tcp --dport 443 -j MASQUERADE
-
-metallb-c:
-	kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
-	kubectl wait --namespace metallb-system \
-					--for=condition=ready pod \
-					--selector=app=metallb \
-					--timeout=180s
+port_forward_clean:
+	@sudo iptables -t nat -S DOCKER | grep -- "--dport 80 -j DNAT --to-destination .*:$(INGRESS_HTTP_NODEPORT)" | sed 's/^-A /iptables -t nat -D /' | sudo sh || true; \
+	sudo iptables -t nat -S DOCKER | grep -- "--dport 443 -j DNAT --to-destination .*:$(INGRESS_HTTPS_NODEPORT)" | sed 's/^-A /iptables -t nat -D /' | sudo sh || true; \
+	sudo iptables -S DOCKER | grep -- "--dport $(INGRESS_HTTP_NODEPORT) -j ACCEPT" | sed 's/^-A /iptables -D /' | sudo sh || true; \
+	sudo iptables -S DOCKER | grep -- "--dport $(INGRESS_HTTPS_NODEPORT) -j ACCEPT" | sed 's/^-A /iptables -D /' | sudo sh || true; \
+	echo "port_forward_clean -> http=$(INGRESS_HTTP_NODEPORT) https=$(INGRESS_HTTPS_NODEPORT)"
 
 helm_repo-c:
 	helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
@@ -80,10 +88,7 @@ config-c:
 # install default tls secret
 	kubectl create secret tls default-tls -n cluster --cert=./cert/fullchain.pem --key=./cert/privkey.pem || true
 # install git secret
-	kubectl create secret generic git-secret -n cluster --from-file=${HOME}/.ssh/id_rsa
-# set metallb config
-	kubectl apply -f ./cluster/metallb-config.yaml || true
-
+	kubectl create secret generic git-secret -n cluster --from-file=${HOME}/.ssh/id_rsa || true
 argocd-c:
 	helm upgrade -i argocd argo/argo-cd -n cluster -f ./apps/argocd/values.yaml
 	@sed 's/argocd.anyflow.net/${DOMAIN_ARGOCD}/' ./apps/argocd/httproute.yaml | kubectl apply -f -
@@ -100,21 +105,21 @@ argocd-cli-c:
 
 istio-sidecar-c:
 	kubectl apply -f ./cluster/namespaces.sidecar.yaml
-	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=1.26.0 --create-namespace --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.sidecar.yaml --version 1.26.0
-	helm upgrade -i istio-ingressgateway istio/gateway -n cluster --set service.type=LoadBalancer --version 1.26.0
+	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=1.29.1 --create-namespace --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.sidecar.yaml --version 1.29.1
+	helm upgrade -i istio-ingressgateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version 1.29.1
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 
 istio-ambient-c:
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.26.0 --create-namespace --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.26.0 --set profile=ambient --wait
-	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.26.0 --set profile=ambient --wait
-	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.26.0 --wait
-	helm upgrade -i istio-ingressgateway istio/gateway -n cluster --set service.type=LoadBalancer --version 1.26.0
 	kubectl apply -f ./cluster/namespaces.ambient.yaml
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.29.1 --create-namespace --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.29.1 --set profile=ambient --wait
+	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.29.1 --set profile=ambient --wait
+	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.29.1 --wait
+	helm upgrade -i istio-ingressgateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version 1.29.1
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/waypoints.yaml
 	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
@@ -366,7 +371,7 @@ customers-d:
 
 istioctl-i:
 	curl -L https://istio.io/downloadIstio | sh - && \
-		sudo mv -f istio-1.26.0/bin/istioctl /usr/local/bin/istioctl && \
-		sudo mv istio-1.26.0/tools/_istioctl ~/_istioctl && \
-		rm -rf istio-1.26.0 && \
+		sudo mv -f istio-1.29.1/bin/istioctl /usr/local/bin/istioctl && \
+		sudo mv istio-1.29.1/tools/_istioctl ~/_istioctl && \
+		rm -rf istio-1.29.1 && \
 		chmod +x /usr/local/bin/istioctl
