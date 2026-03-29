@@ -369,56 +369,12 @@ kagent-public-d:
 
 kagent-r: kagent-public-d agentgateway-d kagent-d kagent-public-c
 
-public-hosts-c:
-	@PUBLIC_IP=$$(getent ahostsv4 anyflow.iptime.org | awk 'NR==1{print $$1}'); \
-	if [ -z "$$PUBLIC_IP" ]; then \
-		echo "failed to resolve anyflow.iptime.org"; \
-		exit 1; \
-	fi; \
-	printf '%s\n' \
-	'apiVersion: v1' \
-	'kind: ConfigMap' \
-	'metadata:' \
-	'  name: coredns' \
-	'  namespace: kube-system' \
-	'data:' \
-	'  Corefile: |' \
-	'    .:53 {' \
-	'        errors' \
-	'        health {' \
-	'           lameduck 5s' \
-	'        }' \
-	'        ready' \
-	'        kubernetes cluster.local in-addr.arpa ip6.arpa {' \
-	'           pods insecure' \
-	'           fallthrough in-addr.arpa ip6.arpa' \
-	'           ttl 30' \
-	'        }' \
-	"        hosts {" \
-	"           $$PUBLIC_IP kagent.anyflow.net agentgateway.anyflow.net" \
-	"           fallthrough" \
-	"        }" \
-	'        prometheus :9153' \
-	'        forward . /etc/resolv.conf {' \
-	'           max_concurrent 1000' \
-	'        }' \
-	'        cache 30 {' \
-	'           disable success cluster.local' \
-	'           disable denial cluster.local' \
-	'        }' \
-	'        loop' \
-	'        reload' \
-	'        loadbalance' \
-	'    }' | kubectl apply -f -
-	kubectl rollout restart deployment/coredns -n kube-system
-	kubectl rollout status deployment/coredns -n kube-system --timeout=180s
-
 agentgateway-admin-patch-c:
 	kubectl patch deployment agentgateway-proxy -n agentgateway-system --type='strategic' -p '{"spec":{"template":{"spec":{"containers":[{"name":"admin-ui-proxy","image":"alpine/socat:latest","args":["TCP-LISTEN:15001,fork,reuseaddr,bind=0.0.0.0","TCP:127.0.0.1:15000"],"ports":[{"containerPort":15001,"name":"admin-ui","protocol":"TCP"}]}]}}}}'
 	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
 	kubectl apply -f ./apps/agentgateway/admin-service.yaml
 
-agentgateway-public-c: cert_manager-c public-hosts-c agentgateway-c
+agentgateway-public-c: cert_manager-c agentgateway-c
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
@@ -430,7 +386,7 @@ agentgateway-public-d:
 	kubectl delete -f ./apps/agentgateway/admin-service.yaml || true
 	kubectl delete -f ./certificate/agentgateway-anyflow-net.yaml || true
 
-current-public-c: cert_manager-c public-hosts-c kagent-c agentgateway-c
+current-public-c: cert_manager-c kagent-c agentgateway-c
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s

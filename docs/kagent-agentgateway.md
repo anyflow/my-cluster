@@ -68,7 +68,6 @@ make current-public-r
 현재 remote 작업트리 기준으로 아래를 순서대로 다시 만든다.
 
 - cert-manager issuer
-- CoreDNS public host mapping
 - kagent + secret + A2A/MCP services
 - agentgateway + proxy gateway + upstream route
 - kagent public route + certificate
@@ -77,19 +76,12 @@ make current-public-r
 ### 개별 명령
 
 ```sh
-make public-hosts-c
 make kagent-c
 make agentgateway-c
 make kagent-public-c
 make agentgateway-public-c
 make agentgateway-admin-patch-c
 ```
-
-## CoreDNS 보정
-
-`cert-manager` HTTP-01 self-check가 `kagent.anyflow.net`, `agentgateway.anyflow.net`를 클러스터 내부 DNS에서도 해석할 수 있어야 한다. 이를 위해 `public-hosts-c`가 `anyflow.iptime.org`의 현재 IPv4를 조회해 CoreDNS `hosts` 블록에 두 호스트를 넣는다.
-
-이 보정이 없으면 인증서 발급이 `NXDOMAIN` 또는 self-check 실패로 멈출 수 있다.
 
 ## 현재 확인된 상태
 
