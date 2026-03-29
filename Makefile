@@ -15,10 +15,12 @@ create-ambient: init
 	$(MAKE) app
 INGRESS_HTTP_NODEPORT ?= 30080
 INGRESS_HTTPS_NODEPORT ?= 30443
+GATEWAY_API_VERSION ?= v1.5.1
+GATEWAY_API_STANDARD_INSTALL ?= https://github.com/kubernetes-sigs/gateway-api/releases/download/$(GATEWAY_API_VERSION)/standard-install.yaml
 
 init: cluster-c helm_repo-c
-istio-sidecar: istio-sidecar-c config-c gateway-c
-istio-ambient: istio-ambient-c config-c gateway-c
+istio-sidecar: istio-sidecar-c config-c gateway-c cert_manager-c api-tls-c
+istio-ambient: istio-ambient-c config-c gateway-c cert_manager-c api-tls-c
 app: docserver-c dockebi-c
 observability:  prometheus-c grafana-c otel-c jaeger-c kiali-c
 otel: otel-otlp-c otel-prometheus-c
@@ -72,6 +74,7 @@ helm_repo-c:
 	helm repo add kiali https://kiali.org/helm-charts
 	helm repo add jaeger https://jaegertracing.github.io/helm-charts
 	helm repo add jenkins https://charts.jenkins.io
+	helm repo add jetstack https://charts.jetstack.io
 	helm repo add argo https://argoproj.github.io/argo-helm
 	helm repo add bitnami https://charts.bitnami.com/bitnami
 	helm repo add elastic https://helm.elastic.co
@@ -85,10 +88,13 @@ namespace-c:
 config-c:
 # set default namespace
 	kubectl config set-context --current --namespace=cluster || true
-# install default tls secret
-	kubectl create secret tls default-tls -n cluster --cert=./cert/fullchain.pem --key=./cert/privkey.pem || true
 # install git secret
 	kubectl create secret generic git-secret -n cluster --from-file=${HOME}/.ssh/id_rsa || true
+
+default-tls-c:
+	kubectl create secret tls default-tls -n cluster --cert=./cert/fullchain.pem --key=./cert/privkey.pem || true
+default-tls-d:
+	kubectl delete secret default-tls -n cluster || true
 argocd-c:
 	helm upgrade -i argocd argo/argo-cd -n cluster -f ./apps/argocd/values.yaml
 	@sed 's/argocd.anyflow.net/${DOMAIN_ARGOCD}/' ./apps/argocd/httproute.yaml | kubectl apply -f -
@@ -113,7 +119,7 @@ istio-sidecar-c:
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 
 istio-ambient-c:
-	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
+	kubectl apply -f $(GATEWAY_API_STANDARD_INSTALL)
 	kubectl apply -f ./cluster/namespaces.ambient.yaml
 	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.29.1 --create-namespace --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.29.1 --set profile=ambient --wait
@@ -126,7 +132,7 @@ istio-ambient-c:
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 
 gateway-c:
-	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
+	kubectl apply -f $(GATEWAY_API_STANDARD_INSTALL)
 	kubectl apply -f ./cluster/gateway.yaml || true
 #	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
 #	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
@@ -261,11 +267,26 @@ otel-node-d:
 
 
 cert_manager-c:
-	kubectl create ns cert-manager || true
-	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+	helm upgrade -i cert-manager jetstack/cert-manager \
+	--namespace cert-manager \
+	--create-namespace \
+	--version v1.20.1 \
+	-f ./apps/cert-manager/values.yaml \
+	--wait
 
 cert_manager-d:
-	kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+	helm uninstall cert-manager -n cert-manager
+
+api-tls-c:
+	kubectl apply -f ./cluster/cert-manager-http01-gateway.yaml
+	kubectl apply -f ./cluster/api-gateway.yaml
+	kubectl apply -f ./cluster/api-anyflow-net.certificate.yaml
+	kubectl wait --for=condition=Ready certificate/api-anyflow-net -n cluster --timeout=600s
+
+api-tls-d:
+	kubectl delete -f ./cluster/api-anyflow-net.certificate.yaml || true
+	kubectl delete -f ./cluster/api-gateway.yaml || true
+	kubectl delete -f ./cluster/cert-manager-http01-gateway.yaml || true
 
 
 metric-server-c:

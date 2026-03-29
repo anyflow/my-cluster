@@ -25,3 +25,12 @@
 .task
 AGENTS.md
 AGENTS.md.bak-*
+
+# local-only remote wrappers
+scripts/remote-run
+scripts/remote-make
+scripts/remote-git
+scripts/remote-kubectl
+
+.omx/
+.mcp.json

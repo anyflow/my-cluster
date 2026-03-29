@@ -1,0 +1,8 @@
+crds:
+  enabled: true
+
+config:
+  enableGatewayAPI: true
+
+extraArgs:
+  - --v=2

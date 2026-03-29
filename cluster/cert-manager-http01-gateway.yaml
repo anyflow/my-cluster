@@ -1,0 +1,18 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: cert-manager-http01
+  namespace: cluster
+spec:
+  gatewayClassName: istio
+  addresses:
+    - type: Hostname
+      value: istio-ingressgateway.cluster.svc.cluster.local
+  listeners:
+    - name: http-api-anyflow-net
+      hostname: api.anyflow.net
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All

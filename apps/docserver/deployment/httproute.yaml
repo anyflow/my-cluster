@@ -7,14 +7,8 @@ spec:
   hosts:
     - api.anyflow.net
   gateways:
-    - cluster/gateway
+    - cluster/api-gateway
   http:
-    - match:
-        - scheme:
-            exact: http
-      redirect:
-        scheme: https
-        redirectCode: 301
     - match:
         - uri:
             exact: /__openapi/openapi.yaml
