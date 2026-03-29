@@ -8,3 +8,13 @@ providers:
     model: gpt-4.1-mini
     apiKeySecretRef: kagent-openai
     apiKeySecretKey: OPENAI_API_KEY
+
+agents:
+  argo-rollouts-agent:
+    enabled: false
+  cilium-policy-agent:
+    enabled: false
+  cilium-manager-agent:
+    enabled: false
+  cilium-debug-agent:
+    enabled: false
