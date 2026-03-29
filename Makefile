@@ -277,15 +277,13 @@ cert_manager-d:
 	helm uninstall cert-manager -n cert-manager
 
 api-tls-c:
-	kubectl apply -f ./cluster/cert-manager-http01-gateway.yaml
-	kubectl apply -f ./cluster/api-gateway.yaml
+	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./cluster/api-anyflow-net.certificate.yaml
 	kubectl wait --for=condition=Ready certificate/api-anyflow-net -n cluster --timeout=600s
 
 api-tls-d:
 	kubectl delete -f ./cluster/api-anyflow-net.certificate.yaml || true
-	kubectl delete -f ./cluster/api-gateway.yaml || true
-	kubectl delete -f ./cluster/cert-manager-http01-gateway.yaml || true
+	kubectl delete -f ./cluster/public-gateway.yaml || true
 
 
 metric-server-c:

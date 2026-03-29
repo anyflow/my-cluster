@@ -12,7 +12,7 @@ spec:
       - http01:
           gatewayHTTPRoute:
             parentRefs:
-              - name: cert-manager-http01
+              - name: public-gateway
                 namespace: cluster
                 kind: Gateway
 ---

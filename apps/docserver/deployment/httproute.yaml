@@ -5,7 +5,7 @@ metadata:
   namespace: service
 spec:
   parentRefs:
-    - name: api-gateway
+    - name: public-gateway
       namespace: cluster
       kind: Gateway
   hostnames:
