@@ -11252,11 +11252,9 @@
       },
       {
         "current": {
-          "selected": true,
-          "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "selected": false,
+          "text": [],
+          "value": []
         },
         "datasource": {
           "type": "prometheus",
@@ -11264,7 +11262,7 @@
         },
         "definition": "query_result(kube_deployment_labels{namespace=~\"$namespace\", app=~\"${app:regex}\"} or kube_statefulset_labels{namespace=~\"$namespace\", app=~\"${app:regex}\"} or kube_daemonset_labels{namespace=~\"$namespace\", app=~\"${app:regex}\"} or kube_cronjob_labels{namespace=~\"$namespace\", app=~\"${app:regex}\"} or label_replace(kube_pod_labels{namespace=~\"$namespace\", app=~\"${app:regex}\", app!=\"\"} * on(namespace,pod) group_left(owner_name) max by (namespace,pod,owner_name) (kube_pod_owner{namespace=~\"$namespace\", owner_kind=~\"StatefulSet|DaemonSet\", owner_is_controller=\"true\"}), \"workload\", \"$1\", \"owner_name\", \"(.*)\") or label_replace(kube_pod_labels{namespace=~\"$namespace\", app=~\"${app:regex}\", app!=\"\"} * on(namespace,pod) group_left(owner_name) max by (namespace,pod,owner_name) (kube_pod_owner{namespace=~\"$namespace\", owner_kind=\"ReplicaSet\", owner_is_controller=\"true\"}), \"workload\", \"$1\", \"owner_name\", \"^(.*)-[a-z0-9]{9,10}$\"))",
         "description": "지정된 Namespace, App에 해당하는 workloads를 선택합니다. workload 종류에는 Deployment, StatefulSet, DaemonSet, CronJob이 있습니다. 본 대시보드의 모든 메트릭은 workloads를 기준으로 표시되나, 예외적으로 Resiliency 섹션 내 메트릭은 workloads에 대한 Service를 기준으로 표시됩니다.",
-        "includeAll": true,
+        "includeAll": false,
         "label": "Workload",
         "multi": true,
         "name": "workload",
@@ -11277,8 +11275,7 @@
         "refresh": 1,
         "regex": "/.*(?:statefulset|daemonset|deployment|cronjob|workload)=\"([^\"]+)\".*/",
         "sort": 1,
-        "type": "query",
-        "allValue": ".*"
+        "type": "query"
       },
       {
         "current": {
@@ -11928,8 +11925,8 @@
     ]
   },
   "timezone": "Asia/Seoul",
-  "title": "Service Dashboard",
-  "uid": "c297444c-170d-49eb-9732-d92f709a1b75",
+  "title": "Service Dashboard (Editable)",
+  "uid": "service-dashboard-editable",
   "version": 1,
   "weekStart": ""
 }

@@ -204,18 +204,13 @@ grafana-c: cert_manager-c
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/grafana-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/grafana-anyflow-net -n cluster --timeout=600s
-	kubectl delete configmap grafana-dashboards-custom -n observability || true
-	kubectl create configmap grafana-dashboards-custom -n observability --from-file=service-dashboard.json=./apps/grafana/custom-dashboard/service-dashboard.json
-	kubectl -n observability exec deploy/grafana -- sh -lc "which curl >/dev/null 2>&1 && curl -s -u admin:admin -X DELETE http://127.0.0.1:3000/api/dashboards/uid/c297444c-170d-49eb-9732-d92f709a1b75 || true" || true
 	helm upgrade -i grafana grafana/grafana -n observability -f ./apps/grafana/values.yaml --version $(GRAFANA_CHART_VERSION)
 	kubectl apply -f ./apps/grafana/httproute.yaml
-	kubectl wait --namespace observability \
-				--for=condition=ready pod \
-				--selector=app.kubernetes.io/name=grafana \
-				--timeout=300s
+	kubectl wait --namespace observability 				--for=condition=ready pod 				--selector=app.kubernetes.io/name=grafana 				--timeout=300s
+	POD=$$(kubectl -n observability get pod -l app.kubernetes.io/name=grafana -o jsonpath='{.items[0].metadata.name}'); 	kubectl -n observability exec $$POD -- sh -lc "which curl >/dev/null 2>&1 && curl -s -u admin:admin -X DELETE http://127.0.0.1:3000/api/dashboards/uid/c297444c-170d-49eb-9732-d92f709a1b75 || true" || true; 	{ printf '{"dashboard":'; cat ./apps/grafana/custom-dashboard/service-dashboard.json; printf ',"overwrite":true}\n'; } | kubectl -n observability exec -i $$POD -- sh -lc 'curl -s -u admin:admin -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/api/dashboards/db --data-binary @-'
+
 grafana-d:
 	helm uninstall grafana -n observability || true
-	kubectl delete configmap grafana-dashboards-custom -n observability || true
 	kubectl delete -f ./apps/grafana/httproute.yaml || true
 	kubectl delete -f ./certificate/grafana-anyflow-net.yaml || true
 
