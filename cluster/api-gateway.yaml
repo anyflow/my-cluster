@@ -1,18 +1,23 @@
-apiVersion: networking.istio.io/v1
+apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: api-gateway
   namespace: cluster
 spec:
-  selector:
-    istio: ingressgateway
-  servers:
-    - port:
-        number: 443
-        name: https-api-anyflow-net
-        protocol: HTTPS
-      hosts:
-        - api.anyflow.net
+  gatewayClassName: istio
+  addresses:
+    - type: Hostname
+      value: istio-ingressgateway.cluster.svc.cluster.local
+  listeners:
+    - name: https-api-anyflow-net
+      hostname: api.anyflow.net
+      port: 443
+      protocol: HTTPS
       tls:
-        mode: SIMPLE
-        credentialName: api-anyflow-net-tls
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: api-anyflow-net-tls
+      allowedRoutes:
+        namespaces:
+          from: All

@@ -133,7 +133,6 @@ istio-ambient-c:
 
 gateway-c:
 	kubectl apply -f $(GATEWAY_API_STANDARD_INSTALL)
-	kubectl apply -f ./cluster/gateway.yaml || true
 #	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
 #	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
 # install ingress
