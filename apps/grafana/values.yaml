@@ -63,6 +63,14 @@ dashboardProviders:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/istio
+      - name: custom
+        orgId: 1
+        folder: Custom
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/custom
 dashboards:
   kubernetes:
     kubernetes-views-global-dashboard:
@@ -106,3 +114,6 @@ dashboards:
       gnetId: 13277
       revision: 175
       datasource: Prometheus
+
+dashboardsConfigMaps:
+  custom: grafana-dashboards-custom

@@ -204,6 +204,9 @@ grafana-c: cert_manager-c
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/grafana-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/grafana-anyflow-net -n cluster --timeout=600s
+	kubectl delete configmap grafana-dashboards-custom -n observability || true
+	kubectl create configmap grafana-dashboards-custom -n observability --from-file=service-dashboard.json=./apps/grafana/custom-dashboard/service-dashboard.json
+	kubectl -n observability exec deploy/grafana -- sh -lc "which curl >/dev/null 2>&1 && curl -s -u admin:admin -X DELETE http://127.0.0.1:3000/api/dashboards/uid/c297444c-170d-49eb-9732-d92f709a1b75 || true" || true
 	helm upgrade -i grafana grafana/grafana -n observability -f ./apps/grafana/values.yaml --version $(GRAFANA_CHART_VERSION)
 	kubectl apply -f ./apps/grafana/httproute.yaml
 	kubectl wait --namespace observability \
@@ -212,6 +215,7 @@ grafana-c: cert_manager-c
 				--timeout=300s
 grafana-d:
 	helm uninstall grafana -n observability || true
+	kubectl delete configmap grafana-dashboards-custom -n observability || true
 	kubectl delete -f ./apps/grafana/httproute.yaml || true
 	kubectl delete -f ./certificate/grafana-anyflow-net.yaml || true
 

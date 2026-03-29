@@ -33,14 +33,30 @@ server:
 prometheus-node-exporter:
   enabled: true
 
+kube-state-metrics:
+  enabled: true
+  metricLabelsAllowlist:
+    - pods=[*]
+    - namespaces=[*]
+    - nodes=[*]
+    - deployments=[*]
+    - daemonsets=[*]
+    - statefulsets=[*]
+    - replicasets=[*]
+    - replicationcontrollers=[*]
+    - jobs=[*]
+    - cronjobs=[*]
+    - services=[*]
+    - ingresses=[*]
+    - horizontalpodautoscalers=[*]
+    - persistentvolumes=[*]
+    - persistentvolumeclaims=[*]
+
 prometheus-pushgateway:
   enabled: false
 
 alertmanager:
   enabled: false
-
-kube-state-metrics:
-  enabled: true
 
 serverFiles:
   prometheus.yml:

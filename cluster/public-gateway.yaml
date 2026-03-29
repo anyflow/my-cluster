@@ -9,14 +9,14 @@ spec:
     - type: Hostname
       value: istio-ingressgateway.cluster.svc.cluster.local
   listeners:
-    - name: http-public-anyflow-net
+    - name: http-api-anyflow-net
       hostname: api.anyflow.net
       port: 80
       protocol: HTTP
       allowedRoutes:
         namespaces:
           from: All
-    - name: https-public-anyflow-net
+    - name: https-api-anyflow-net
       hostname: api.anyflow.net
       port: 443
       protocol: HTTPS
