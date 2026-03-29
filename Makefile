@@ -318,6 +318,7 @@ istioctl-i:
 		chmod +x /usr/local/bin/istioctl
 AGENTGATEWAY_CHART_VERSION ?= v1.0.0
 KAGENT_CHART_VERSION ?= 0.8.1
+KMCP_CHART_VERSION ?= 0.2.7
 
 kagent-secret-c:
 	@if [ -n "$$OPENAI_API_KEY" ]; then \
@@ -328,19 +329,35 @@ kagent-secret-c:
 
 kagent-c:
 	kubectl create namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+	@if kubectl get gatewayclass istio-waypoint >/dev/null 2>&1; then \
+		kubectl apply -f ./cluster/kagent-waypoint.yaml; \
+		kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Programmed")].status}'=True gateway/waypoint-kagent -n kagent --timeout=300s; \
+	fi
 	$(MAKE) kagent-secret-c
-	helm upgrade -i kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds -n kagent --create-namespace --version $(KAGENT_CHART_VERSION)
+	helm upgrade -i kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds -n kagent --create-namespace --version $(KAGENT_CHART_VERSION) --set kmcp.enabled=false
 	helm upgrade -i kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent -n kagent --create-namespace -f ./apps/kagent/values.yaml --version $(KAGENT_CHART_VERSION) --wait
 	kubectl apply -f ./apps/kagent/agentgateway-services.yaml
 	kubectl apply -f ./apps/kagent/referencegrant-agentgateway.yaml
 	kubectl rollout status deployment/kagent-controller -n kagent --timeout=300s
+	$(MAKE) kmcp-c
 
 kagent-d:
 	kubectl delete -f ./apps/kagent/referencegrant-agentgateway.yaml || true
 	kubectl delete -f ./apps/kagent/agentgateway-services.yaml || true
+	kubectl delete -f ./cluster/kagent-waypoint.yaml || true
+	$(MAKE) kmcp-d
 	helm uninstall kagent -n kagent || true
 	helm uninstall kagent-crds -n kagent || true
 	kubectl delete secret kagent-openai -n kagent || true
+
+kmcp-c:
+	helm upgrade -i kmcp-crds oci://ghcr.io/kagent-dev/kmcp/helm/kmcp-crds -n kagent --create-namespace --version $(KMCP_CHART_VERSION)
+	helm upgrade -i kmcp oci://ghcr.io/kagent-dev/kmcp/helm/kmcp -n kagent --create-namespace --version $(KMCP_CHART_VERSION) --wait
+	kubectl rollout status deployment/kmcp-controller-manager -n kagent --timeout=300s
+
+kmcp-d:
+	helm uninstall kmcp -n kagent || true
+	helm uninstall kmcp-crds -n kagent || true
 
 agentgateway-c: kagent-c
 	helm upgrade -i agentgateway-crds oci://cr.agentgateway.dev/charts/agentgateway-crds --create-namespace --namespace agentgateway-system --version $(AGENTGATEWAY_CHART_VERSION) --set controller.image.pullPolicy=Always
