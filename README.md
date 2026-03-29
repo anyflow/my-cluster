@@ -102,22 +102,16 @@ The `Kubernetes Gateway API` is a new Kubernetes API that replaces `ingress`. It
 
 
 ### Three Worker Nodes
-Considering it operates locally, using three worker nodes is unnecessary. However, they are set to three for testing sharding and replication in systems like `Elasticsearch` and `MongoDB`. If deemed unnecessary, you can configure it to just one node in the `kind-config.yaml` file.
+Considering it operates locally, using three worker nodes is unnecessary. However, they are set to three for testing replication and failure scenarios in distributed workloads. If deemed unnecessary, you can configure it to just one node in the `kind-config.yaml` file.
 
 ## Supported App List
 Below is a list of supported (✅) or planned to be supported (🚧) apps. For more details, refer to the `README.md` in the respective app directory.
 
 - **✅ `docker-registry`**: [`/apps/docker-registry/README.md`](./apps/docker-registry/README.md)
-- **✅ `jenkins`**: [`/apps/jenkins/README.md`](./apps/jenkins/README.md)
 - 🚧 `jaeger`
 - 🚧 `prmetheus`
 - 🚧 `grafana`
-- 🚧 `elasticsearch`
-- 🚧 `fluentbit`
-- 🚧 `kibana`
 - 🚧 `argocd`
-- 🚧 `kafka`
-- 🚧 `kafkaui`
 
 ## Description of Techniques Used in My Cluster
 

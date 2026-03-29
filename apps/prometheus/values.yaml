@@ -16,11 +16,10 @@ server:
   extraFlags:
     - web.enable-lifecycle #default
     - web.enable-remote-write-receiver # allow remote write
-    - enable-feature=otlp-write-receiver # allow OTLP receiver
     - enable-feature=exemplar-storage # allow exemplar storage
 
   extraArgs:
-    log.level: debug
+    log.level: info
 
   replicaCount: 1
   statefulSet:
@@ -46,7 +45,7 @@ kube-state-metrics:
 serverFiles:
   prometheus.yml:
     scrape_configs:
-      - job_name: prometheus
+      - job_name: prometheus-self
         static_configs:
           - targets:
               - localhost:9090

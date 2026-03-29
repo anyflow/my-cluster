@@ -52,7 +52,6 @@ spec:
           level: INFO
         metrics:
           level: detailed
-          address: 0.0.0.0:8888
 
       pipelines:
         metrics:

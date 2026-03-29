@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: prometheus-anyflow-net
+  namespace: cluster
+spec:
+  secretName: prometheus-anyflow-net-tls
+  issuerRef:
+    name: letsencrypt-production-http01
+    kind: ClusterIssuer
+  dnsNames:
+    - prometheus.anyflow.net

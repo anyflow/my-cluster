@@ -17,13 +17,17 @@ INGRESS_HTTP_NODEPORT ?= 30080
 INGRESS_HTTPS_NODEPORT ?= 30443
 GATEWAY_API_VERSION ?= v1.5.1
 GATEWAY_API_STANDARD_INSTALL ?= https://github.com/kubernetes-sigs/gateway-api/releases/download/$(GATEWAY_API_VERSION)/standard-install.yaml
+KIALI_CHART_VERSION ?= 2.23.0
+PROMETHEUS_CHART_VERSION ?= 28.14.1
+GRAFANA_CHART_VERSION ?= 10.5.15
+OTEL_OPERATOR_CHART_VERSION ?= 0.109.0
 
 init: cluster-c helm_repo-c
 istio-sidecar: istio-sidecar-c config-c gateway-c cert_manager-c api-tls-c
 istio-ambient: istio-ambient-c config-c gateway-c cert_manager-c api-tls-c
 app: docserver-c dockebi-c
-observability:  prometheus-c grafana-c otel-c jaeger-c kiali-c
-otel: otel-otlp-c otel-prometheus-c
+observability:  prometheus-c grafana-c otel-c otel-prometheus-c jaeger-c kiali-c
+otel: otel-c otel-prometheus-c
 
 
 cluster-c:
@@ -73,11 +77,8 @@ helm_repo-c:
 	helm repo add grafana https://grafana.github.io/helm-charts
 	helm repo add kiali https://kiali.org/helm-charts
 	helm repo add jaeger https://jaegertracing.github.io/helm-charts
-	helm repo add jenkins https://charts.jenkins.io
 	helm repo add jetstack https://charts.jetstack.io
 	helm repo add argo https://argoproj.github.io/argo-helm
-	helm repo add bitnami https://charts.bitnami.com/bitnami
-	helm repo add elastic https://helm.elastic.co
 	helm repo add phntom https://phntom.kix.co.il/charts/
 
 	helm repo update
@@ -175,9 +176,12 @@ dockebi-r: dockebi-d dockebi-c
 PROMETHEUS_POD_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
 PROMETHEUS_SERVICE_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
 
-prometheus-c:
-	helm upgrade -i prometheus prometheus/prometheus -n observability -f ./apps/prometheus/values.yaml
-	@sed 's/prometheus.anyflow.net/${DOMAIN_PROMETHEUS}/' ./apps/prometheus/httproute.yaml | kubectl apply -f -
+prometheus-c: cert_manager-c
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/prometheus-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/prometheus-anyflow-net -n cluster --timeout=600s
+	helm upgrade -i prometheus prometheus/prometheus -n observability -f ./apps/prometheus/values.yaml --version $(PROMETHEUS_CHART_VERSION)
+	kubectl apply -f ./apps/prometheus/httproute.yaml
 	kubectl apply -f ${PROMETHEUS_POD_MONITORS_CRD}
 	kubectl apply -f ${PROMETHEUS_SERVICE_MONITORS_CRD}
 	kubectl wait --namespace observability \
@@ -187,24 +191,29 @@ prometheus-c:
 prometheus-d:
 	kubectl delete -f ${PROMETHEUS_POD_MONITORS_CRD} || true
 	kubectl delete -f ${PROMETHEUS_SERVICE_MONITORS_CRD} || true
-	helm uninstall prometheus
-	kubectl delete -f ./apps/prometheus/httproute.yaml
+	helm uninstall prometheus -n observability || true
+	kubectl delete -f ./apps/prometheus/httproute.yaml || true
+	kubectl delete -f ./certificate/prometheus-anyflow-net.yaml || true
 	kubectl wait --namespace observability \
 				--for=condition=ready pod \
 				--selector=app.kubernetes.io/name=prometheus \
 				--timeout=300s
 prometheus-r: prometheus-d prometheus-c
 
-grafana-c:
-	helm upgrade -i grafana grafana/grafana -n observability -f ./apps/grafana/values.yaml
-	@sed 's/grafana.anyflow.net/${DOMAIN_GRAFANA}/' ./apps/grafana/httproute.yaml | kubectl apply -f -
+grafana-c: cert_manager-c
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/grafana-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/grafana-anyflow-net -n cluster --timeout=600s
+	helm upgrade -i grafana grafana/grafana -n observability -f ./apps/grafana/values.yaml --version $(GRAFANA_CHART_VERSION)
+	kubectl apply -f ./apps/grafana/httproute.yaml
 	kubectl wait --namespace observability \
 				--for=condition=ready pod \
 				--selector=app.kubernetes.io/name=grafana \
 				--timeout=300s
 grafana-d:
-	helm uninstall grafana -n observability
-	kubectl delete -f ./apps/grafana/httproute.yaml
+	helm uninstall grafana -n observability || true
+	kubectl delete -f ./apps/grafana/httproute.yaml || true
+	kubectl delete -f ./certificate/grafana-anyflow-net.yaml || true
 
 jaeger-c:
 	helm upgrade -i -n observability jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.4.1
@@ -214,31 +223,30 @@ jaeger-d:
 	kubectl delete -f ./apps/jaeger/httproute.yaml
 jaeger-r: jaeger-d jaeger-c
 
-kiali-c:
-	helm upgrade -i -n istio-system kiali-server kiali/kiali-server -f ./apps/kiali/values.yaml --version 2.8.0
+kiali-c: cert_manager-c
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/kiali-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/kiali-anyflow-net -n cluster --timeout=600s
+	helm upgrade -i -n istio-system kiali-server kiali/kiali-server -f ./apps/kiali/values.yaml --version $(KIALI_CHART_VERSION)
 	kubectl apply -f apps/kiali/httproute.yaml
 	kubectl apply -f apps/kiali/destinationrule.yaml
-	kubectl wait --namespace istio-system \
-				--for=condition=ready pod \
-				--selector=app.kubernetes.io/name=kiali \
-				--timeout=300s
+	kubectl rollout status deployment/kiali -n istio-system --timeout=300s
 kiali-d:
-	kubectl delete -f apps/kiali/httproute.yaml
-	helm uninstall kiali-server -n istio-system
+	kubectl delete -f apps/kiali/httproute.yaml || true
+	kubectl delete -f apps/kiali/destinationrule.yaml || true
+	kubectl delete -f ./certificate/kiali-anyflow-net.yaml || true
+	helm uninstall kiali-server -n istio-system || true
 kiali-r: kiali-d kiali-c
 
 
 otel-c:
 	helm upgrade -n observability -i opentelemetry-operator open-telemetry/opentelemetry-operator \
-	 --version 0.86.4 \
+	 --version $(OTEL_OPERATOR_CHART_VERSION) \
 	--set "manager.collectorImage.repository=otel/opentelemetry-collector-contrib" \
 	--set admissionWebhooks.certManager.enabled=false \
 	--set admissionWebhooks.autoGenerateCert.enabled=true
 	kubectl apply -f apps/otel/rbac.yaml
-	kubectl wait --namespace observability \
-				--for=condition=ready pod \
-				--selector=app.kubernetes.io/name=opentelemetry-operator \
-				--timeout=300s
+	kubectl rollout status deployment/opentelemetry-operator -n observability --timeout=300s
 otel-d:
 	kubectl delete -f apps/otel/rbac.yaml || true
 	helm uninstall opentelemetry-operator -n observability
@@ -266,23 +274,20 @@ otel-node-d:
 
 
 cert_manager-c:
-	helm upgrade -i cert-manager jetstack/cert-manager \
-	--namespace cert-manager \
-	--create-namespace \
-	--version v1.20.1 \
-	-f ./apps/cert-manager/values.yaml \
-	--wait
+	helm upgrade -i cert-manager jetstack/cert-manager 	--namespace cert-manager 	--create-namespace 	--version v1.20.1 	-f ./apps/cert-manager/values.yaml 	--wait
+	kubectl apply -f ./certificate/issuer.yaml
 
 cert_manager-d:
-	helm uninstall cert-manager -n cert-manager
+	kubectl delete -f ./certificate/issuer.yaml || true
+	helm uninstall cert-manager -n cert-manager || true
 
 api-tls-c:
 	kubectl apply -f ./cluster/public-gateway.yaml
-	kubectl apply -f ./cluster/api-anyflow-net.certificate.yaml
+	kubectl apply -f ./certificate/api-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/api-anyflow-net -n cluster --timeout=600s
 
 api-tls-d:
-	kubectl delete -f ./cluster/api-anyflow-net.certificate.yaml || true
+	kubectl delete -f ./certificate/api-anyflow-net.yaml || true
 	kubectl delete -f ./cluster/public-gateway.yaml || true
 
 
@@ -303,88 +308,6 @@ docker_registry-c:
 docker_registry-d:
 	helm uninstall docker-registry -n cluster
 	kubectl delete -f ./apps/docker-registry/httproute.yaml
-
-
-eck-c:
-	kubectl create ns elastic-system || true
-	kubectl create -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml || true
-	kubectl apply -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml || true
-eck-d:
-	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/operator.yaml || true
-	kubectl delete -f https://download.elastic.co/downloads/eck/2.11.1/crds.yaml || true
-	kubectl delete ns elastic-system || true
-
-elasticsearch-c:
-	kubectl apply -f apps/eck/elasticsearch.yaml
-	kubectl apply -f apps/eck/elasticsearch.httproute.yaml
-elasticsearch-d:
-	kubectl delete -f apps/eck/elasticsearch.httproute.yaml
-	kubectl delete -f apps/eck/elasticsearch.yaml
-elasticsearch-password:
-	kubectl get secret elasticsearch-es-elastic-user -o go-template='{{.data.elastic | base64decode}}'
-
-kibana-c:
-	kubectl apply -f apps/eck/kibana.yaml || true
-	kubectl apply -f apps/eck/kibana.httproute.yaml
-kibana-d:
-	kubectl delete -f apps/eck/kibana.httproute.yaml
-	kubectl delete -f apps/eck/kibana.yaml
-kibana_objects:
-	curl -X POST "kibana.lgthinq.com.local/api/saved_objects/_import" -H "kbn-xsrf: true" --form file=@elasticsearch/dashboard.ndjson -H "kbn-xsrf: true"
-
-fluentbit-c:
-	helm upgrade -i fluentbit bitnami/fluent-bit -f ./apps/fluentbit/values.yaml -n cluster
-fluentbit-d:
-	helm uninstall fluentbit -n cluster
-
-
-kafka-c:
-	helm upgrade -i -n cluster kafka bitnami/kafka -f ./apps/kafka/values.yaml
-kafka-d:
-	helm uninstall -n cluster kafka
-
-kafkaui-c:
-	helm upgrade -i -n cluster kafkaui kafka-ui/kafka-ui -f ./apps/kafkaui/values.yaml
-kafkaui-d:
-	helm uninstall -n cluster kafkaui
-
-kafka_client-c:
-	kubectl run kafka-client --restart='Never' --image docker.io/bitnami/kafka:3.4.0-debian-11-r22 --namespace cluster --command -- sleep infinity
-kafka_client-d:
-	kubectl delete pod -n cluster kafka-client
-
-exec_kafka_client:
-	kubectl exec -it -n cluster kafka-client -- bash
-
-jenkins-c:
-	export CREATE_DIR_TARGET="./nodes/worker0/var/local-path-provisioner/jenkins"; \
-	$(MAKE) __create_dir
-
-	kubectl apply -f ./apps/jenkins/pv.yaml
-	kubectl apply -f ./apps/jenkins/pvc.yaml
-
-	helm upgrade -i jenkins jenkins/jenkins -n cluster -f ./apps/jenkins/values.yaml
-	@sed 's/jenkins.anyflow.net/${DOMAIN_JENKINS}/' ./apps/jenkins/httproute.yaml | kubectl apply -f -
-jenkins-d:
-	helm uninstall jenkins
-	kubectl delete -f ./apps/jenkins/httproute.yaml
-	kubectl delete -f ./apps/jenkins/pvc.yaml
-	kubectl delete -f ./apps/jenkins/pv.yaml
-
-bookinfo-c:
-	kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo.yaml -n service
-	kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo-versions.yaml -n service
-	kubectl apply -f apps/bookinfo/httproute.yaml
-bookinfo-d:
-	kubectl delete -f apps/bookinfo/httproute.yaml
-	kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo-versions.yaml -n service
-	kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.25/samples/bookinfo/platform/kube/bookinfo.yaml -n service
-
-customers-c:
-	kubectl apply -k ./apps/customers
-customers-d:
-	kubectl delete -k ./apps/customers
-	kubectl delete authorizationpolicies.security.istio.io -n service allow-web-frontend-customers allow-ingress-frontend deny-all
 
 
 istioctl-i:

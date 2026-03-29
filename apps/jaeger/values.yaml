@@ -9,8 +9,6 @@ agent:
 
 provisionDataStore:
   cassandra: false
-  elasticsearch: false
-  kafka: false
 
 storage:
   type: memory

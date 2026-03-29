@@ -42,26 +42,6 @@ datasources:
         type: jaeger
         url: http://jaeger-query.observability.svc.cluster.local:16686
         access: proxy
-        jsonData:
-          tracesToLogsV2:
-            datasourceUid: "Elasticsearch"
-            filterByTraceID: true
-            filterBySpanID: true
-      - name: Elasticsearch
-        type: elasticsearch
-        url: http://elasticsearch-es-internal-http.cluster.svc.cluster.local:9200
-        access: proxy
-        basicAuth: true
-        basicAuthUser: anyflow
-        secureJsonData:
-          basicAuthPassword: mycluster
-        jsonData:
-          esVersion: 7
-          timeField: "@timestamp"
-          maxConcurrentShardRequests: 256
-          interval: Daily
-          logMessageField: message
-          logLevelField: level
 
 dashboardProviders:
   dashboardproviders.yaml:

@@ -15,16 +15,3 @@ spec:
               - name: public-gateway
                 namespace: cluster
                 kind: Gateway
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: api-anyflow-net
-  namespace: cluster
-spec:
-  secretName: api-anyflow-net-tls
-  issuerRef:
-    name: letsencrypt-production-http01
-    kind: ClusterIssuer
-  dnsNames:
-    - api.anyflow.net

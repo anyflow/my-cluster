@@ -28,3 +28,60 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: http-kiali-anyflow-net
+      hostname: kiali.anyflow.net
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-kiali-anyflow-net
+      hostname: kiali.anyflow.net
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: kiali-anyflow-net-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: http-prometheus-anyflow-net
+      hostname: prometheus.anyflow.net
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-prometheus-anyflow-net
+      hostname: prometheus.anyflow.net
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: prometheus-anyflow-net-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: http-grafana-anyflow-net
+      hostname: grafana.anyflow.net
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-grafana-anyflow-net
+      hostname: grafana.anyflow.net
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: grafana-anyflow-net-tls
+      allowedRoutes:
+        namespaces:
+          from: All

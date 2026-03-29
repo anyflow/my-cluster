@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana-anyflow-net
+  namespace: cluster
+spec:
+  secretName: grafana-anyflow-net-tls
+  issuerRef:
+    name: letsencrypt-production-http01
+    kind: ClusterIssuer
+  dnsNames:
+    - grafana.anyflow.net
