@@ -206,9 +206,10 @@ grafana-c: cert_manager-c
 	kubectl wait --for=condition=Ready certificate/grafana-anyflow-net -n cluster --timeout=600s
 	helm upgrade -i grafana grafana/grafana -n observability -f ./apps/grafana/values.yaml --version $(GRAFANA_CHART_VERSION)
 	kubectl apply -f ./apps/grafana/httproute.yaml
-	kubectl wait --namespace observability 				--for=condition=ready pod 				--selector=app.kubernetes.io/name=grafana 				--timeout=300s
-	POD=$$(kubectl -n observability get pod -l app.kubernetes.io/name=grafana -o jsonpath='{.items[0].metadata.name}'); 	kubectl -n observability exec $$POD -- sh -lc "which curl >/dev/null 2>&1 && curl -s -u admin:admin -X DELETE http://127.0.0.1:3000/api/dashboards/uid/c297444c-170d-49eb-9732-d92f709a1b75 || true" || true; 	{ printf '{"dashboard":'; cat ./apps/grafana/custom-dashboard/service-dashboard.json; printf ',"overwrite":true}\n'; } | kubectl -n observability exec -i $$POD -- sh -lc 'curl -s -u admin:admin -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/api/dashboards/db --data-binary @-'
-
+	kubectl wait --namespace observability \
+				--for=condition=ready pod \
+				--selector=app.kubernetes.io/name=grafana \
+				--timeout=300s
 grafana-d:
 	helm uninstall grafana -n observability || true
 	kubectl delete -f ./apps/grafana/httproute.yaml || true
@@ -315,3 +316,130 @@ istioctl-i:
 		sudo mv istio-1.29.1/tools/_istioctl ~/_istioctl && \
 		rm -rf istio-1.29.1 && \
 		chmod +x /usr/local/bin/istioctl
+AGENTGATEWAY_CHART_VERSION ?= v1.0.0
+KAGENT_CHART_VERSION ?= 0.8.1
+
+kagent-secret-c:
+	@if [ -n "$$OPENAI_API_KEY" ]; then \
+		kubectl create secret generic kagent-openai -n kagent --from-literal OPENAI_API_KEY="$$OPENAI_API_KEY" --dry-run=client -o yaml | kubectl apply -f -; \
+	else \
+		echo "OPENAI_API_KEY is not set; skipping kagent-openai secret creation"; \
+	fi
+
+kagent-c:
+	kubectl create namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+	$(MAKE) kagent-secret-c
+	helm upgrade -i kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds -n kagent --create-namespace --version $(KAGENT_CHART_VERSION)
+	helm upgrade -i kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent -n kagent --create-namespace -f ./apps/kagent/values.yaml --version $(KAGENT_CHART_VERSION) --wait
+	kubectl apply -f ./apps/kagent/agentgateway-services.yaml
+	kubectl apply -f ./apps/kagent/referencegrant-agentgateway.yaml
+	kubectl rollout status deployment/kagent-controller -n kagent --timeout=300s
+
+kagent-d:
+	kubectl delete -f ./apps/kagent/referencegrant-agentgateway.yaml || true
+	kubectl delete -f ./apps/kagent/agentgateway-services.yaml || true
+	helm uninstall kagent -n kagent || true
+	helm uninstall kagent-crds -n kagent || true
+	kubectl delete secret kagent-openai -n kagent || true
+
+agentgateway-c: kagent-c
+	helm upgrade -i agentgateway-crds oci://cr.agentgateway.dev/charts/agentgateway-crds --create-namespace --namespace agentgateway-system --version $(AGENTGATEWAY_CHART_VERSION) --set controller.image.pullPolicy=Always
+	helm upgrade -i agentgateway oci://cr.agentgateway.dev/charts/agentgateway --namespace agentgateway-system --version $(AGENTGATEWAY_CHART_VERSION) -f ./apps/agentgateway/values.yaml --wait
+	kubectl apply -f ./apps/agentgateway/proxy-gateway.yaml
+	kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Programmed")].status}'=True gateway/agentgateway-proxy -n agentgateway-system --timeout=300s
+	kubectl apply -f ./apps/agentgateway/route-to-kagent.yaml
+	kubectl rollout status deployment/agentgateway -n agentgateway-system --timeout=300s
+	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
+
+agentgateway-d:
+	kubectl delete -f ./apps/agentgateway/route-to-kagent.yaml || true
+	kubectl delete -f ./apps/agentgateway/proxy-gateway.yaml || true
+	helm uninstall agentgateway -n agentgateway-system || true
+	helm uninstall agentgateway-crds -n agentgateway-system || true
+
+kagent-public-c: cert_manager-c agentgateway-c
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s
+	kubectl apply -f ./apps/agentgateway/public-httproute.yaml
+
+kagent-public-d:
+	kubectl delete -f ./apps/agentgateway/public-httproute.yaml || true
+	kubectl delete -f ./certificate/kagent-anyflow-net.yaml || true
+
+kagent-r: kagent-public-d agentgateway-d kagent-d kagent-public-c
+
+public-hosts-c:
+	@PUBLIC_IP=$$(getent ahostsv4 anyflow.iptime.org | awk 'NR==1{print $$1}'); \
+	if [ -z "$$PUBLIC_IP" ]; then \
+		echo "failed to resolve anyflow.iptime.org"; \
+		exit 1; \
+	fi; \
+	printf '%s\n' \
+	'apiVersion: v1' \
+	'kind: ConfigMap' \
+	'metadata:' \
+	'  name: coredns' \
+	'  namespace: kube-system' \
+	'data:' \
+	'  Corefile: |' \
+	'    .:53 {' \
+	'        errors' \
+	'        health {' \
+	'           lameduck 5s' \
+	'        }' \
+	'        ready' \
+	'        kubernetes cluster.local in-addr.arpa ip6.arpa {' \
+	'           pods insecure' \
+	'           fallthrough in-addr.arpa ip6.arpa' \
+	'           ttl 30' \
+	'        }' \
+	"        hosts {" \
+	"           $$PUBLIC_IP kagent.anyflow.net agentgateway.anyflow.net" \
+	"           fallthrough" \
+	"        }" \
+	'        prometheus :9153' \
+	'        forward . /etc/resolv.conf {' \
+	'           max_concurrent 1000' \
+	'        }' \
+	'        cache 30 {' \
+	'           disable success cluster.local' \
+	'           disable denial cluster.local' \
+	'        }' \
+	'        loop' \
+	'        reload' \
+	'        loadbalance' \
+	'    }' | kubectl apply -f -
+	kubectl rollout restart deployment/coredns -n kube-system
+	kubectl rollout status deployment/coredns -n kube-system --timeout=180s
+
+agentgateway-admin-patch-c:
+	kubectl patch deployment agentgateway-proxy -n agentgateway-system --type='strategic' -p '{"spec":{"template":{"spec":{"containers":[{"name":"admin-ui-proxy","image":"alpine/socat:latest","args":["TCP-LISTEN:15001,fork,reuseaddr,bind=0.0.0.0","TCP:127.0.0.1:15000"],"ports":[{"containerPort":15001,"name":"admin-ui","protocol":"TCP"}]}]}}}}'
+	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
+	kubectl apply -f ./apps/agentgateway/admin-service.yaml
+
+agentgateway-public-c: cert_manager-c public-hosts-c agentgateway-c
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
+	$(MAKE) agentgateway-admin-patch-c
+	kubectl apply -f ./apps/agentgateway/admin-httproute.yaml
+
+agentgateway-public-d:
+	kubectl delete -f ./apps/agentgateway/admin-httproute.yaml || true
+	kubectl delete -f ./apps/agentgateway/admin-service.yaml || true
+	kubectl delete -f ./certificate/agentgateway-anyflow-net.yaml || true
+
+current-public-c: cert_manager-c public-hosts-c kagent-c agentgateway-c
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s
+	kubectl apply -f ./apps/agentgateway/public-httproute.yaml
+	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
+	$(MAKE) agentgateway-admin-patch-c
+	kubectl apply -f ./apps/agentgateway/admin-httproute.yaml
+
+current-public-d: agentgateway-public-d kagent-public-d agentgateway-d kagent-d
+
+current-public-r: current-public-d current-public-c

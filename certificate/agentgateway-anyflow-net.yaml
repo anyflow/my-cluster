@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: agentgateway-anyflow-net
+  namespace: cluster
+spec:
+  secretName: agentgateway-anyflow-net-tls
+  issuerRef:
+    name: letsencrypt-production-http01
+    kind: ClusterIssuer
+  dnsNames:
+    - agentgateway.anyflow.net
