@@ -1,0 +1,42 @@
+fullnameOverride: tempo
+
+replicas: 1
+
+persistence:
+  enabled: false
+
+tempo:
+  reportingEnabled: false
+  retention: 24h
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: http://prometheus-server.observability.svc.cluster.local:80/api/v1/write
+    processor:
+      local_blocks:
+        filter_server_spans: false
+    storage:
+      path: /tmp/tempo/generator
+    traces_storage:
+      path: /tmp/tempo/generator/traces
+  overrides:
+    defaults:
+      metrics_generator:
+        processors:
+          - local-blocks
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+
+tempoQuery:
+  enabled: false

@@ -11,7 +11,7 @@ server:
       port: 9090
     tracing:
       collector_type: otel
-      collector_url: jaeger-collector.observability.svc.cluster.local:4317
+      collector_url: otel-otlp-collector.observability.svc.cluster.local:4317
       enabled: true
       otel:
         protocol: grpc
@@ -27,10 +27,6 @@ external_services:
         - app_label: istiod
           is_core: true
           is_proxy: false
-        # - app_label: istio-ingressgateway
-        #   is_core: false
-        # - app_label: istio-egressgateway
-        #   is_core: false
       enabled: true
   prometheus:
     url: http://prometheus-server.observability.svc.cluster.local:80
@@ -51,9 +47,15 @@ external_services:
     url: https://grafana.anyflow.net
   tracing:
     enabled: true
-    in_cluster_url: http://jaeger-query.observability.svc.cluster.local:16686
-    url: https://jaeger.anyflow.net
+    provider: tempo
+    internal_url: http://tempo.observability.svc.cluster.local:3200
+    health_check_url: http://tempo.observability.svc.cluster.local:3200
+    external_url: https://grafana.anyflow.net
     use_grpc: false
+    tempo_config:
+      org_id: "1"
+      datasource_uid: tempo
+      url_format: grafana
 
 identity:
   cert_file: ""

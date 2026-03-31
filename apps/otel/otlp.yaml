@@ -55,7 +55,8 @@ spec:
             - batch
           exporters:
             - debug
-            - otlp/jaeger
+            - otlphttp/tempo
+            - otlphttp/jaeger
 
         logs:
           receivers:
@@ -111,7 +112,7 @@ spec:
           initial_interval: 5s
           max_interval: 30s
           max_elapsed_time: 300s
-      otlp/jaeger:
-        endpoint: jaeger-collector.observability.svc.cluster.local:4317
-        tls:
-          insecure: true
+      otlphttp/tempo:
+        endpoint: http://tempo.observability.svc.cluster.local:4318
+      otlphttp/jaeger:
+        endpoint: http://jaeger-collector.observability.svc.cluster.local:4318

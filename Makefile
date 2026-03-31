@@ -21,12 +21,15 @@ KIALI_CHART_VERSION ?= 2.23.0
 PROMETHEUS_CHART_VERSION ?= 28.14.1
 GRAFANA_CHART_VERSION ?= 10.5.15
 OTEL_OPERATOR_CHART_VERSION ?= 0.109.0
+TEMPO_CHART_VERSION ?= 1.24.4
 
 init: cluster-c helm_repo-c
 istio-sidecar: istio-sidecar-c config-c gateway-c cert_manager-c api-tls-c
 istio-ambient: istio-ambient-c config-c gateway-c cert_manager-c api-tls-c
 app: docserver-c dockebi-c
-observability:  prometheus-c grafana-c otel-c otel-prometheus-c jaeger-c kiali-c
+
+
+observability:  prometheus-c grafana-c otel-c otel-prometheus-c kiali-c
 otel: otel-c otel-prometheus-c
 
 
@@ -215,14 +218,26 @@ grafana-d:
 	kubectl delete -f ./apps/grafana/httproute.yaml || true
 	kubectl delete -f ./certificate/grafana-anyflow-net.yaml || true
 
-jaeger-c:
+tempo-c:
+	helm upgrade -i tempo grafana/tempo -n observability -f ./apps/tempo/values.yaml --version $(TEMPO_CHART_VERSION)
+	kubectl label service tempo -n observability istio.io/use-waypoint=none --overwrite
+	kubectl rollout status statefulset/tempo -n observability --timeout=300s
+tempo-d:
+	helm uninstall tempo -n observability || true
+tempo-r: tempo-d tempo-c
+
+jaeger-c: cert_manager-c
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/jaeger-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/jaeger-anyflow-net -n cluster --timeout=600s
 	helm upgrade -i -n observability jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.4.1
 	# Keep jaeger-query outside the observability waypoint; headless query service returns 503 via waypoint in this PoC.
 	kubectl label service jaeger-query -n observability istio.io/use-waypoint=none --overwrite
 	kubectl apply -f ./apps/jaeger/httproute.yaml
 jaeger-d:
-	helm uninstall jaeger -n observability
-	kubectl delete -f ./apps/jaeger/httproute.yaml
+	helm uninstall jaeger -n observability || true
+	kubectl delete -f ./apps/jaeger/httproute.yaml || true
+	kubectl delete -f ./certificate/jaeger-anyflow-net.yaml || true
 jaeger-r: jaeger-d jaeger-c
 
 kiali-c: cert_manager-c
@@ -412,4 +427,3 @@ current-public-c: cert_manager-c kagent-c agentgateway-c
 current-public-d: agentgateway-public-d kagent-public-d agentgateway-d kagent-d
 
 current-public-r: current-public-d current-public-c
-
