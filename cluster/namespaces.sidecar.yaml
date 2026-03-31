@@ -18,3 +18,10 @@ metadata:
   name: service
   labels:
     istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kagent
+  labels:
+    istio-injection: enabled

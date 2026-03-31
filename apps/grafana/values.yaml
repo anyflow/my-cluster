@@ -10,6 +10,8 @@ podLabels:
   version: latest
 
 service:
+  portName: http
+  appProtocol: http
   labels:
     app: grafana
     version: latest

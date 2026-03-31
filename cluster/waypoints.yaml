@@ -4,7 +4,7 @@ metadata:
   name: waypoint-cluster
   namespace: cluster
   labels:
-    istio.io/waypoint-for: cluster
+    istio.io/waypoint-for: service
 spec:
   gatewayClassName: istio-waypoint
   listeners:
@@ -21,7 +21,7 @@ metadata:
   name: waypoint-observability
   namespace: observability
   labels:
-    istio.io/waypoint-for: observability
+    istio.io/waypoint-for: service
 spec:
   gatewayClassName: istio-waypoint
   listeners:
@@ -37,6 +37,24 @@ kind: Gateway
 metadata:
   name: waypoint-service
   namespace: service
+  labels:
+    istio.io/waypoint-for: service
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+    - allowedRoutes:
+        namespaces:
+          from: Same
+      name: mesh
+      port: 15008
+      protocol: HBONE
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: waypoint-kagent
+  namespace: kagent
   labels:
     istio.io/waypoint-for: service
 spec:

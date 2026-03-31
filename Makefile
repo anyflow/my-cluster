@@ -217,6 +217,8 @@ grafana-d:
 
 jaeger-c:
 	helm upgrade -i -n observability jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.4.1
+	# Keep jaeger-query outside the observability waypoint; headless query service returns 503 via waypoint in this PoC.
+	kubectl label service jaeger-query -n observability istio.io/use-waypoint=none --overwrite
 	kubectl apply -f ./apps/jaeger/httproute.yaml
 jaeger-d:
 	helm uninstall jaeger -n observability
@@ -328,11 +330,6 @@ kagent-secret-c:
 	fi
 
 kagent-c:
-	kubectl create namespace kagent --dry-run=client -o yaml | kubectl apply -f -
-	@if kubectl get gatewayclass istio-waypoint >/dev/null 2>&1; then \
-		kubectl apply -f ./cluster/kagent-waypoint.yaml; \
-		kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Programmed")].status}'=True gateway/waypoint-kagent -n kagent --timeout=300s; \
-	fi
 	$(MAKE) kagent-secret-c
 	helm upgrade -i kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds -n kagent --create-namespace --version $(KAGENT_CHART_VERSION) --set kmcp.enabled=false
 	helm upgrade -i kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent -n kagent --create-namespace -f ./apps/kagent/values.yaml --version $(KAGENT_CHART_VERSION) --wait
@@ -344,7 +341,6 @@ kagent-c:
 kagent-d:
 	kubectl delete -f ./apps/kagent/referencegrant-agentgateway.yaml || true
 	kubectl delete -f ./apps/kagent/agentgateway-services.yaml || true
-	kubectl delete -f ./cluster/kagent-waypoint.yaml || true
 	$(MAKE) kmcp-d
 	helm uninstall kagent -n kagent || true
 	helm uninstall kagent-crds -n kagent || true
@@ -416,3 +412,4 @@ current-public-c: cert_manager-c kagent-c agentgateway-c
 current-public-d: agentgateway-public-d kagent-public-d agentgateway-d kagent-d
 
 current-public-r: current-public-d current-public-c
+

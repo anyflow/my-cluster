@@ -24,3 +24,12 @@ metadata:
     istio.io/dataplane-mode: ambient
     istio.io/use-waypoint: waypoint-service
     istio.io/ingress-use-waypoint: "true"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kagent
+  labels:
+    istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: waypoint-kagent
+    istio.io/ingress-use-waypoint: "true"

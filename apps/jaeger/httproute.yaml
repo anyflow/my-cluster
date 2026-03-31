@@ -5,20 +5,16 @@ metadata:
   namespace: observability
 spec:
   parentRefs:
-    - name: gateway
+    - name: public-gateway
       namespace: cluster
+      kind: Gateway
   hostnames:
     - jaeger.anyflow.net
   rules:
     - matches:
         - path:
-            type: PathPrefix #Implementation-specific, PathPrefix, Exact
+            type: PathPrefix
             value: /
       backendRefs:
         - name: jaeger-query
           port: 16686
-    - filters:
-        - type: RequestRedirect
-          requestRedirect:
-            scheme: https
-            statusCode: 301

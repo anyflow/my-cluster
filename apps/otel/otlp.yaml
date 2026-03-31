@@ -12,7 +12,7 @@ spec:
 
   env:
     - name: GOMEMLIMIT
-      value: 680MiB # memory * 0.85(limit_percentage) * 0.8 80% of hard memory limit is highly recommended by Official README.
+      value: 680MiB
 
   resources:
     requests:
@@ -22,7 +22,6 @@ spec:
       cpu: 500m
       memory: 1000Mi
 
-  # replicas: 1
   autoscaler:
     minReplicas: 1
     maxReplicas: 2
@@ -30,16 +29,12 @@ spec:
     targetMemoryUtilization: 60
 
   podAnnotations:
-    # sidecar.istio.io/proxyCPU: 200m
-    # sidecar.istio.io/proxyCPULimit: 200m
-    # sidecar.istio.io/proxyMemory: 256Mi
-    # sidecar.istio.io/proxyMemoryLimit: 256Mi
-    sidecar.istio.io/interceptionMode: TPROXY # k8sattributes would get 127.0.0.6(used in Istio internally) as k8s.pod.ip from targets unless using TPROXY mode. Then it fails to get correct other k8s resource like k8s.namespace.name.
+    sidecar.istio.io/interceptionMode: TPROXY
 
   config:
     extensions:
-      health_check: # for k8s liveness and readiness probes
-        endpoint: 0.0.0.0:13133 # default
+      health_check:
+        endpoint: 0.0.0.0:13133
 
     service:
       extensions:
@@ -47,10 +42,9 @@ spec:
 
       telemetry:
         logs:
-          level: info # debug
+          level: info
         metrics:
           level: detailed
-          address: 0.0.0.0:8888
 
       pipelines:
         traces:
@@ -71,7 +65,6 @@ spec:
             - batch
           exporters:
             - debug
-            # - elasticsearch
 
         metrics:
           receivers:
@@ -82,7 +75,6 @@ spec:
           exporters:
             - debug
             - prometheusremotewrite
-            # - otlphttp/prometheus
 
     receivers:
       otlp:
@@ -93,52 +85,33 @@ spec:
             endpoint: 0.0.0.0:4318
 
     processors:
-      batch: # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md
-        send_batch_size: 8192 # default 8192
-        send_batch_max_size: 0 # default 0, which means no limit on size.
-        timeout: 5s # default 200ms
-      memory_limiter: # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md
-        check_interval: 1s # recommended by official README
+      batch:
+        send_batch_size: 8192
+        send_batch_max_size: 0
+        timeout: 5s
+      memory_limiter:
+        check_interval: 1s
         limit_percentage: 85
-        spike_limit_percentage: 17 # default is 20% of hard limit. 17% = 0.85(limit_percentage) * 0.2
+        spike_limit_percentage: 17
 
     exporters:
       debug:
-        verbosity: basic # detailed, basic
-
-      # otlphttp/prometheus:
-      #   metrics_endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp/v1/metrics
-      #   tls:
-      #     insecure: true
-      prometheusremotewrite: # for pushing metrics to prometheus instead of pulling of right above
+        verbosity: basic
+      prometheusremotewrite:
         endpoint: http://prometheus-server.observability.svc.cluster.local:80/api/v1/write
-        # tls:
-        #   insecure: true
         target_info:
           enabled: false
-        timeout: 30s # (default: 5s) added to address "context deadline exceeded" data dropping error.
+        timeout: 30s
         remote_write_queue:
           enabled: true
-          num_consumers: 5 # minimum number of workers to use to fan out the outgoing requests. (default: 5)
-          queue_size: 5000 # default 10000. send_batch_max_size + 1000 applied
-        retry_on_failure: # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md
-          enabled: true # default true.
-          initial_interval: 5s # (default = 5s): Time to wait after the first failure before retrying; ignored
-          max_interval: 30s # (default = 30s): Is the upper bound on backoff
-          max_elapsed_time: 300s # (default = 300s): Is the maximum amount of time spent trying to send a batch; ignored if enabled is false. If set to 0, the retries are never stopped.
-
+          num_consumers: 5
+          queue_size: 5000
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 300s
       otlp/jaeger:
         endpoint: jaeger-collector.observability.svc.cluster.local:4317
         tls:
           insecure: true
-
-      # elasticsearch:
-      #   endpoints:
-      #     - http://elasticsearch-es-http.observability.svc.cluster.local:9200
-      #   logs_index: "istio-access-log"
-      #   logs_dynamic_index:
-      #     enabled: true
-      #   logstash_format:
-      #     enabled: true
-      #   user: anyflow
-      #   password: mycluster
