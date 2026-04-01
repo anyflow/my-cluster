@@ -1,7 +1,7 @@
 apiVersion: extensions.istio.io/v1alpha1
 kind: WasmPlugin
 metadata:
-  name: openapi-endpoint-filter
+  name: openapi-endpoint-filter-server
   namespace: cluster
 spec:
   targetRefs:
@@ -13,7 +13,7 @@ spec:
   phase: STATS
   failStrategy: FAIL_OPEN
   match:
-    - mode: CLIENT_AND_SERVER
+    - mode: SERVER
   pluginConfig:
     services:
       - name: dockebi
@@ -31,6 +31,27 @@ spec:
             get: {}
           /dockebi/v1/health:
             get: {}
+---
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: openapi-endpoint-filter-client
+  namespace: cluster
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: public-gateway
+  url: ghcr.io/anyflow/openapi-endpoint-filter:0.4.0
+  imagePullPolicy: Always
+  phase: STATS
+  failStrategy: FAIL_OPEN
+  match:
+    - mode: CLIENT
+  pluginConfig:
+    services:
+      - name: dockebi
+        paths:
           /v1/stuff:
             get: {}
             post: {}

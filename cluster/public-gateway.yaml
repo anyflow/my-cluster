@@ -7,7 +7,7 @@ spec:
   gatewayClassName: istio
   addresses:
     - type: Hostname
-      value: istio-ingressgateway.cluster.svc.cluster.local
+      value: public-gateway.cluster.svc.cluster.local
   listeners:
     - name: http-api-anyflow-net
       hostname: api.anyflow.net

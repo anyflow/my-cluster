@@ -117,7 +117,7 @@ istio-sidecar-c:
 	kubectl apply -f ./cluster/namespaces.sidecar.yaml
 	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=1.29.1 --create-namespace --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.sidecar.yaml --version 1.29.1
-	helm upgrade -i istio-ingressgateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version 1.29.1
+	helm upgrade -i public-gateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version 1.29.1
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
@@ -129,7 +129,7 @@ istio-ambient-c:
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.29.1 --set profile=ambient --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.29.1 --set profile=ambient --wait
 	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.29.1 --wait
-	helm upgrade -i istio-ingressgateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version 1.29.1
+	helm upgrade -i public-gateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version 1.29.1
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/waypoints.yaml
 	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml

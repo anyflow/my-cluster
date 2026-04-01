@@ -11474,7 +11474,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(istio_requests_total{app=\"$app\", namespace=~\"$namespace\"},request_service)",
+        "definition": "query_result(count by (request_service) ((istio_requests_total{destination_workload_namespace=~\"$namespace\", destination_app=~\"${app:regex}\", reporter=\"waypoint\", request_service!~\"unknown|^$\"}) or (istio_requests_total{source_workload_namespace=~\"$namespace\", source_app=~\"${app:regex}\", reporter=\"source\", request_service!~\"unknown|^$\"})))",
         "description": "관찰할 API GROUP을 선택합니다.",
         "includeAll": true,
         "label": "API GROUP",
@@ -11482,12 +11482,12 @@
         "name": "select_apigroup",
         "options": [],
         "query": {
-          "qryType": 1,
-          "query": "label_values(istio_requests_total{app=\"$app\", namespace=~\"$namespace\"},request_service)",
+          "qryType": 3,
+          "query": "query_result(count by (request_service) ((istio_requests_total{destination_workload_namespace=~\"$namespace\", destination_app=~\"${app:regex}\", reporter=\"waypoint\", request_service!~\"unknown|^$\"}) or (istio_requests_total{source_workload_namespace=~\"$namespace\", source_app=~\"${app:regex}\", reporter=\"source\", request_service!~\"unknown|^$\"})))",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
-        "regex": "",
+        "regex": "/.*request_service=\"([^\"]+)\".*/",
         "type": "query"
       },
       {
@@ -11779,7 +11779,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "query_result(istio_requests_total{destination_workload=~\"$workload\", reporter=\"destination\"})",
+        "definition": "query_result(istio_requests_total{destination_workload=~\"$workload\", reporter=\"waypoint\"})",
         "description": "",
         "hide": 2,
         "includeAll": true,
@@ -11789,7 +11789,7 @@
         "options": [],
         "query": {
           "qryType": 3,
-          "query": "query_result(istio_requests_total{destination_workload=~\"$workload\", reporter=\"destination\"})",
+          "query": "query_result(istio_requests_total{destination_workload=~\"$workload\", reporter=\"waypoint\"})",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -11859,7 +11859,7 @@
       {
         "current": {
           "text": "Server",
-          "value": "destination"
+          "value": "waypoint"
         },
         "description": "Inbound Traffic 관점을 나타냅니다. Server는 workloads에서 측정된 값을 기준으로, Client는 source 서비스에서 측정된 값을 기준으로 traffic 메트릭을 나타냅니다.",
         "hide": 2,
@@ -11870,7 +11870,7 @@
           {
             "selected": true,
             "text": "Server",
-            "value": "destination"
+            "value": "waypoint"
           },
           {
             "selected": false,
@@ -11878,7 +11878,7 @@
             "value": "source"
           }
         ],
-        "query": "Server : destination,Client : source",
+        "query": "Server : waypoint,Client : source",
         "type": "custom"
       },
       {
