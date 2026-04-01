@@ -14,6 +14,19 @@ spec:
     - matches:
         - path:
             type: Exact
+            value: /logout
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            hostname: api.anyflow.net
+            scheme: https
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /auth/logout
+            statusCode: 302
+    - matches:
+        - path:
+            type: Exact
             value: /
       filters:
         - type: RequestRedirect

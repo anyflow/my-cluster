@@ -88,3 +88,25 @@ meshConfig:
           labels: # https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#config-access-log-format-dictionaries
             status: "%RESPONSE_CODE%"
             Body: "%LOCAL_REPLY_BODY%"
+
+    - name: authelia
+      envoyExtAuthzHttp:
+        service: authelia.cluster.svc.cluster.local
+        port: 80
+        pathPrefix: /api/authz/ext-authz/
+        includeRequestHeadersInCheck:
+          - accept
+          - cookie
+          - location
+          - authorization
+          - proxy-authorization
+        headersToUpstreamOnAllow:
+          - remote-*
+          - authelia-*
+        includeAdditionalHeadersInCheck:
+          X-Forwarded-Proto: 'https'
+        headersToDownstreamOnDeny:
+          - location
+          - set-cookie
+        headersToDownstreamOnAllow:
+          - set-cookie

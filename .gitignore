@@ -34,3 +34,6 @@ scripts/remote-kubectl
 
 .omx/
 .mcp.json
+
+# ignored runtime secret manifests
+apps/authelia/secret.yaml

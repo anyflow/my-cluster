@@ -389,10 +389,10 @@ kagent-public-c: cert_manager-c agentgateway-c
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s
-	kubectl apply -f ./apps/agentgateway/public-httproute.yaml
+	kubectl apply -f ./apps/kagent/httproute.yaml
 
 kagent-public-d:
-	kubectl delete -f ./apps/agentgateway/public-httproute.yaml || true
+	kubectl delete -f ./apps/kagent/httproute.yaml || true
 	kubectl delete -f ./certificate/kagent-anyflow-net.yaml || true
 
 kagent-r: kagent-public-d agentgateway-d kagent-d kagent-public-c
@@ -407,23 +407,48 @@ agentgateway-public-c: cert_manager-c agentgateway-c
 	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
 	$(MAKE) agentgateway-admin-patch-c
-	kubectl apply -f ./apps/agentgateway/admin-httproute.yaml
+	kubectl apply -f ./apps/agentgateway/httproute.yaml
 
 agentgateway-public-d:
-	kubectl delete -f ./apps/agentgateway/admin-httproute.yaml || true
+	kubectl delete -f ./apps/agentgateway/httproute.yaml || true
 	kubectl delete -f ./apps/agentgateway/admin-service.yaml || true
 	kubectl delete -f ./certificate/agentgateway-anyflow-net.yaml || true
 
-current-public-c: cert_manager-c kagent-c agentgateway-c
+
+AUTHELIA_VERSION ?= 4.39.16
+
+authelia-secrets-c:
+	@test -f ./apps/authelia/secret.yaml || (echo "missing apps/authelia/secret.yaml" >&2; exit 1)
+	kubectl apply -f ./apps/authelia/secret.yaml
+
+authelia-c: cert_manager-c
+	$(MAKE) authelia-secrets-c
+	kubectl apply -f ./apps/authelia/deployment.yaml
+	kubectl rollout status deployment/authelia -n cluster --timeout=300s
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.29.1 --set profile=ambient --wait
+	kubectl apply -f ./apps/authelia/auth-httproute.yaml
+	kubectl apply -f ./apps/authelia/logout-httproute.yaml
+	kubectl apply -f ./apps/kagent/authzpolicy.yaml
+	kubectl apply -f ./apps/agentgateway/authzpolicy.yaml
+
+authelia-d:
+	kubectl delete -f ./apps/agentgateway/authzpolicy.yaml || true
+	kubectl delete -f ./apps/kagent/authzpolicy.yaml || true
+	kubectl delete -f ./apps/authelia/logout-httproute.yaml || true
+	kubectl delete -f ./apps/authelia/auth-httproute.yaml || true
+	kubectl delete -f ./apps/authelia/deployment.yaml || true
+	kubectl delete secret authelia-config -n cluster || true
+
+current-public-c: cert_manager-c kagent-c agentgateway-c authelia-c
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s
-	kubectl apply -f ./apps/agentgateway/public-httproute.yaml
+	kubectl apply -f ./apps/kagent/httproute.yaml
 	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
 	$(MAKE) agentgateway-admin-patch-c
-	kubectl apply -f ./apps/agentgateway/admin-httproute.yaml
+	kubectl apply -f ./apps/agentgateway/httproute.yaml
 
-current-public-d: agentgateway-public-d kagent-public-d agentgateway-d kagent-d
+current-public-d: authelia-d agentgateway-public-d kagent-public-d agentgateway-d kagent-d
 
 current-public-r: current-public-d current-public-c

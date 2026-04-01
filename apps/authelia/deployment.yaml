@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authelia
+  namespace: cluster
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authelia
+  template:
+    metadata:
+      labels:
+        app: authelia
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: authelia
+          image: authelia/authelia:4.39.16
+          args:
+            - authelia
+            - --config
+            - /config/configuration.yml
+          ports:
+            - containerPort: 9091
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          secret:
+            secretName: authelia-config
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authelia
+  namespace: cluster
+spec:
+  selector:
+    app: authelia
+  ports:
+    - name: http
+      port: 80
+      targetPort: 9091
+      protocol: TCP

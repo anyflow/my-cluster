@@ -1,17 +1,27 @@
 # kagent + agentgateway 운영 메모
 
-이 문서는 `~/workspace/my-cluster` remote 작업트리에 반영된 `kagent`/`agentgateway` 구성의 현재 상태를 압축해서 설명한다.
+이 문서는 `~/workspace/my-cluster` remote 작업트리에 반영된 `kagent`, `kmcp`, `agentgateway`, `Authelia` 구성을 압축해서 설명한다.
 
 ## 현재 상태
 
-- `kagent`는 `default` 프로필로 설치되어 있다.
+- `kagent`는 `default` 프로필 기반이지만 현재 클러스터에 맞지 않는 `argo-rollouts`, `cilium` agent는 비활성화되어 있다.
+- `kmcp`는 `kagent` namespace에 별도 설치되어 있으며 `MCPServer` CRD와 컨트롤러가 정상 동작한다.
 - `agentgateway`는 `kagent`의 A2A/MCP 앞단 프록시로 설치되어 있다.
-- 외부 공개 호스트:
-  - `https://kagent.anyflow.net/` -> `kagent` UI
-  - `https://kagent.anyflow.net/api/a2a/...` -> `kagent` A2A
-  - `https://kagent.anyflow.net/mcp` -> `kagent` MCP via `agentgateway`
-  - `https://agentgateway.anyflow.net/ui/` -> `agentgateway` admin UI
-- TLS 인증서는 `cert-manager` + `letsencrypt-production-http01` 기준으로 발급한다.
+- `kagent` namespace는 ambient + 전용 waypoint(`waypoint-kagent`)가 적용되어 있다.
+- `Authelia`는 `api.anyflow.net/auth` 경로로 공통 로그인 포털을 제공한다.
+
+## 외부 엔드포인트
+
+- `https://kagent.anyflow.net/` -> `kagent` UI (로그인 필요)
+- `https://kagent.anyflow.net/api/a2a/...` -> `kagent` A2A (비보호)
+- `https://kagent.anyflow.net/mcp` -> `kagent` MCP via `agentgateway` (비보호)
+- `https://agentgateway.anyflow.net/ui/` -> `agentgateway` admin UI (로그인 필요)
+- `https://api.anyflow.net/auth` -> `Authelia` 로그인 포털
+- `https://api.anyflow.net/logout` -> 공통 로그아웃 진입점
+
+로그인 계정:
+- ID: `anyflow`
+- PW: `StaffOnly`
 
 ## 핵심 구성
 
@@ -19,43 +29,57 @@
 
 - values: `apps/kagent/values.yaml`
 - OpenAI provider는 `kagent-openai` Secret 참조를 사용한다.
-- `.env`의 `OPENAI_API_KEY`를 `Makefile`의 `kagent-secret-c`가 읽어 Secret을 만든다.
-- `kagent-controller` 서비스 외에 agentgateway 연동용 Service를 별도로 둔다.
+- `kagent-controller` 외에 `agentgateway` 연동용 Service를 별도로 둔다.
   - `kagent-a2a` -> `appProtocol: kgateway.dev/a2a`
   - `kagent-mcp` -> `appProtocol: agentgateway.dev/mcp`
-- cross-namespace backend ref 허용용 `ReferenceGrant`를 `apps/kagent/referencegrant-agentgateway.yaml`에 둔다.
+- `ReferenceGrant`: `apps/kagent/referencegrant-agentgateway.yaml`
+- public route: `apps/kagent/httproute.yaml`
+  - `/api/a2a`, `/mcp`는 `agentgateway-proxy`
+  - `/`는 `kagent-ui`
+  - `/logout`는 `api.anyflow.net/auth/logout`로 redirect
+- auth policy: `apps/kagent/authzpolicy.yaml`
+  - `kagent UI`만 보호
+  - `/api/a2a`, `/mcp`, `/logout`는 예외 처리
+
+### kmcp
+
+- `kmcp-controller-manager`는 `kagent` namespace에 배치된다.
+- 설치는 `Makefile`의 `kmcp-c`, 제거는 `kmcp-d`가 담당한다.
+- `MCPServer`를 생성하면 deployment/service가 실제로 만들어지는 상태까지 검증했다.
 
 ### agentgateway
 
 - values: `apps/agentgateway/values.yaml`
 - 내부 proxy gateway: `apps/agentgateway/proxy-gateway.yaml`
 - kagent upstream route: `apps/agentgateway/route-to-kagent.yaml`
-- public route:
-  - `apps/agentgateway/public-httproute.yaml`
-  - `/api/a2a`, `/mcp`는 `agentgateway-proxy`
-  - `/`는 `kagent-ui`
-- admin UI public route:
-  - `apps/agentgateway/admin-httproute.yaml`
+- admin UI route: `apps/agentgateway/httproute.yaml`
   - `/` -> `/ui/` redirect
   - `/ui`, `/config_dump` -> `agentgateway-admin`
+  - `/logout` -> `api.anyflow.net/auth/logout` redirect
+- admin service: `apps/agentgateway/admin-service.yaml`
+- auth policy: `apps/agentgateway/authzpolicy.yaml`
+  - `agentgateway UI`만 보호
+  - `/auth`, `/logout`는 예외 처리
+
+### Authelia
+
+- deployment/service: `apps/authelia/deployment.yaml`
+- auth route: `apps/authelia/auth-httproute.yaml`
+- logout route: `apps/authelia/logout-httproute.yaml`
+- 실제 secret: `apps/authelia/secret.yaml`
+  - `stringData` 기반 선언형 Secret
+  - `.gitignore`로 비추적
+- 예시 secret: `apps/authelia/secret.example.yaml`
+- `create-secret.sh`는 제거되었다.
 
 ## agentgateway admin UI 노출 방식
 
-`agentgateway` admin UI는 기본적으로 proxy pod 내부의 loopback `127.0.0.1:15000`에 떠 있다. `Service`만으로는 직접 노출되지 않아서, 현재는 `agentgateway-proxy` deployment에 sidecar를 patch해서 `0.0.0.0:15001 -> 127.0.0.1:15000` 포워딩을 만든다.
+`agentgateway` admin UI는 기본적으로 proxy pod 내부 loopback `127.0.0.1:15000`에 뜬다. `Service`만으로 직접 노출되지 않아서, 현재는 `agentgateway-proxy` deployment에 sidecar를 patch해 `0.0.0.0:15001 -> 127.0.0.1:15000` 포워딩을 만든다.
 
-- service: `apps/agentgateway/admin-service.yaml`
 - patch target: `Makefile`의 `agentgateway-admin-patch-c`
+- admin service: `apps/agentgateway/admin-service.yaml`
 
 즉 admin UI 기능 자체는 upstream이 제공하지만, 외부 공개 경로는 현재 patch 기반 구현이다.
-
-## public gateway / certificate
-
-- listeners: `cluster/public-gateway.yaml`
-  - `kagent.anyflow.net`
-  - `agentgateway.anyflow.net`
-- certificates:
-  - `certificate/kagent-anyflow-net.yaml`
-  - `certificate/agentgateway-anyflow-net.yaml`
 
 ## 재설치 / 복구 명령
 
@@ -68,8 +92,10 @@ make current-public-r
 현재 remote 작업트리 기준으로 아래를 순서대로 다시 만든다.
 
 - cert-manager issuer
-- kagent + secret + A2A/MCP services
+- kagent + Secret + A2A/MCP services
+- kmcp CRD + controller
 - agentgateway + proxy gateway + upstream route
+- Authelia + auth/logout route + UI auth policy
 - kagent public route + certificate
 - agentgateway admin patch + admin service + admin route + certificate
 
@@ -77,7 +103,9 @@ make current-public-r
 
 ```sh
 make kagent-c
+make kmcp-c
 make agentgateway-c
+make authelia-c
 make kagent-public-c
 make agentgateway-public-c
 make agentgateway-admin-patch-c
@@ -87,10 +115,14 @@ make agentgateway-admin-patch-c
 
 - `kagent.anyflow.net` TLS: Ready
 - `agentgateway.anyflow.net` TLS: Ready
-- `kagent` UI / A2A: 동작 확인
-- `agentgateway` admin UI: 동작 확인
+- `kagent` UI: 로그인 후 접근 가능
+- `agentgateway` UI: 로그인 후 접근 가능
+- `kagent` A2A: 비보호 접근 유지
+- `Authelia` 기반 SSO: 동작 확인
+- `api.anyflow.net/logout`: 공통 로그아웃 진입점으로 동작 확인
+- `MCPServer` 테스트 배포/생성: 동작 확인 후 테스트 리소스 삭제
 
 ## 남은 리스크
 
 - `agentgateway` admin UI 노출은 controller가 관리하는 `agentgateway-proxy` deployment에 patch를 재적용하는 구조라, 재조정 시 patch가 사라질 수 있다. 현재는 `agentgateway-admin-patch-c`와 `current-public-c`로 복구한다.
-- 관측 시점에 `kagent-kmcp-controller-manager`는 `CrashLoopBackOff`였고, 이는 이번 public UI 노출 작업의 blocker는 아니었지만 후속 확인이 필요하다.
+- `apps/authelia/secret.yaml`는 의도적으로 비추적 파일이다. 재설치 시 이 파일이 없으면 `authelia-c`는 실패한다.
