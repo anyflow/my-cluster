@@ -3,18 +3,31 @@ include .env
 export
 
 create-sidecar: init
-	$(MAKE) enlarge_open_file_count
 	$(MAKE) port_forward
+	$(MAKE) metric-server-c
 	$(MAKE) istio-sidecar
 	$(MAKE) app
 
 create-ambient: init
-	$(MAKE) enlarge_open_file_count
 	$(MAKE) port_forward
+	$(MAKE) metric-server-c
 	$(MAKE) istio-ambient
 	$(MAKE) app
 INGRESS_HTTP_NODEPORT ?= 30080
 INGRESS_HTTPS_NODEPORT ?= 30443
+SSH_BLOCKLIST_IPS ?= \
+	172.239.9.59 \
+	103.105.176.70 \
+	103.4.145.50 \
+	36.50.177.119 \
+	121.29.4.103 \
+	14.103.118.153 \
+	35.225.56.202 \
+	211.213.96.171
+SSH_ALLOWLIST_IPS ?= \
+	192.168.0.0/24 \
+	27.122.242.65/32 \
+	117.111.8.13/32
 GATEWAY_API_VERSION ?= v1.5.1
 GATEWAY_API_STANDARD_INSTALL ?= https://github.com/kubernetes-sigs/gateway-api/releases/download/$(GATEWAY_API_VERSION)/standard-install.yaml
 KIALI_CHART_VERSION ?= 2.23.0
@@ -72,6 +85,55 @@ port_forward_clean:
 	sudo iptables -S DOCKER | grep -- "--dport $(INGRESS_HTTP_NODEPORT) -j ACCEPT" | sed 's/^-A /iptables -D /' | sudo sh || true; \
 	sudo iptables -S DOCKER | grep -- "--dport $(INGRESS_HTTPS_NODEPORT) -j ACCEPT" | sed 's/^-A /iptables -D /' | sudo sh || true; \
 	echo "port_forward_clean -> http=$(INGRESS_HTTP_NODEPORT) https=$(INGRESS_HTTPS_NODEPORT)"
+
+ssh_blocklist:
+	@for ip in $(SSH_BLOCKLIST_IPS); do \
+		sudo iptables -C INPUT -p tcp -s $$ip --dport 22 -j DROP 2>/dev/null || sudo iptables -I INPUT 1 -p tcp -s $$ip --dport 22 -j DROP; \
+	done; \
+	echo "ssh_blocklist -> $(SSH_BLOCKLIST_IPS)"
+
+ssh_blocklist_clean:
+	@for ip in $(SSH_BLOCKLIST_IPS); do \
+		while sudo iptables -C INPUT -p tcp -s $$ip --dport 22 -j DROP 2>/dev/null; do \
+			sudo iptables -D INPUT -p tcp -s $$ip --dport 22 -j DROP; \
+		done; \
+	done; \
+	echo "ssh_blocklist_clean -> $(SSH_BLOCKLIST_IPS)"
+
+ssh_allowlist:
+	@sudo iptables -N SSH_ALLOWLIST 2>/dev/null || true; \
+	while sudo iptables -C INPUT -p tcp --dport 22 -j SSH_ALLOWLIST 2>/dev/null; do \
+		sudo iptables -D INPUT -p tcp --dport 22 -j SSH_ALLOWLIST; \
+	done; \
+	sudo iptables -F SSH_ALLOWLIST; \
+	for ip in $(SSH_ALLOWLIST_IPS); do \
+		sudo iptables -A SSH_ALLOWLIST -s $$ip -p tcp --dport 22 -j ACCEPT; \
+	done; \
+	sudo iptables -A SSH_ALLOWLIST -p tcp --dport 22 -j REJECT --reject-with tcp-reset; \
+	sudo iptables -I INPUT 1 -p tcp --dport 22 -j SSH_ALLOWLIST; \
+	echo "ssh_allowlist -> $(SSH_ALLOWLIST_IPS)"
+
+ssh_allowlist_clean:
+	@while sudo iptables -C INPUT -p tcp --dport 22 -j SSH_ALLOWLIST 2>/dev/null; do \
+		sudo iptables -D INPUT -p tcp --dport 22 -j SSH_ALLOWLIST; \
+	done; \
+	sudo iptables -F SSH_ALLOWLIST 2>/dev/null || true; \
+	sudo iptables -X SSH_ALLOWLIST 2>/dev/null || true; \
+	echo "ssh_allowlist_clean"
+
+wlan0_down:
+	@sudo ip link set wlan0 down 2>/dev/null || sudo ifconfig wlan0 down; \
+	echo "wlan0_down"; \
+	ip route; \
+	echo; \
+	ip addr show wlan0 2>/dev/null || ifconfig wlan0 || true
+
+wlan0_up:
+	@sudo ip link set wlan0 up 2>/dev/null || sudo ifconfig wlan0 up; \
+	echo "wlan0_up"; \
+	ip route; \
+	echo; \
+	ip addr show wlan0 2>/dev/null || ifconfig wlan0 || true
 
 helm_repo-c:
 	helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
@@ -309,9 +371,12 @@ api-tls-d:
 
 
 metric-server-c:
+	@kubectl -n kube-system get deployment metrics-server >/dev/null 2>&1 || \
 	kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+	@kubectl -n kube-system get deployment metrics-server -o jsonpath='{.spec.template.spec.containers[0].args}' | grep -q -- '--kubelet-insecure-tls' || \
 	kubectl patch deployment metrics-server -n kube-system --type='json' \
-  -p '[{"op":"add", "path":"/spec/template/spec/containers/0/args/-", "value":"--kubelet-insecure-tls"}]'
+	-p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+	@kubectl -n kube-system rollout status deploy/metrics-server --timeout=180s
 
 docker_registry-c:
 	export CREATE_DIR_TARGET="./nodes/worker0/var/local-path-provisioner/docker-registry"; \
@@ -452,3 +517,61 @@ current-public-c: cert_manager-c kagent-c agentgateway-c authelia-c
 current-public-d: authelia-d agentgateway-public-d kagent-public-d agentgateway-d kagent-d
 
 current-public-r: current-public-d current-public-c
+
+
+anyflow-blog-c: cert_manager-c
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/blog-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/blog-anyflow-net -n cluster --timeout=600s
+	$(MAKE) -C apps/anyflow-blog create
+anyflow-blog-d:
+	$(MAKE) -C apps/anyflow-blog delete
+	kubectl delete -f ./certificate/blog-anyflow-net.yaml || true
+anyflow-blog-r: anyflow-blog-d anyflow-blog-c
+
+
+market-intelligence-render:
+	cd ./apps/market-reporter && 		tmpdir=$$(mktemp -d) && 		python3 -m venv "$$tmpdir/venv" && 		. "$$tmpdir/venv/bin/activate" && 		pip install -q -r requirements.txt && 		PYTHONPATH=src TARGETS_DIR=$$(pwd)/targets python -m market_reporter.render_manifests
+
+market-intelligence-image-c: market-intelligence-render
+	cd ./apps/market-reporter && docker build -t market-reporter:latest .
+	kind load docker-image market-reporter:latest --name my-cluster
+
+market-intelligence-common-c: market-intelligence-image-c
+	kubectl apply -f ./apps/market-reporter/deployment/common/mcpserver.yaml
+	kubectl apply -f ./apps/market-reporter/deployment/common/remotemcpserver.yaml
+	kubectl rollout status deployment/market-intelligence-mcp -n kagent --timeout=300s
+
+market-intelligence-common-d:
+	kubectl delete -f ./apps/market-reporter/deployment/common/remotemcpserver.yaml || true
+	kubectl delete -f ./apps/market-reporter/deployment/common/mcpserver.yaml || true
+
+market-intelligence-tesla-c: market-intelligence-common-c
+	kubectl apply -f ./apps/market-reporter/deployment/tesla/agent.yaml
+	kubectl apply -f ./apps/market-reporter/deployment/tesla/cronjob.yaml
+	kubectl rollout status deployment/tesla-intelligence-analyst -n kagent --timeout=300s
+
+market-intelligence-tesla-d:
+	kubectl delete -f ./apps/market-reporter/deployment/tesla/cronjob.yaml || true
+	kubectl delete -f ./apps/market-reporter/deployment/tesla/agent.yaml || true
+
+market-intelligence-samsung-electronics-c: market-intelligence-common-c
+	kubectl apply -f ./apps/market-reporter/deployment/samsung-electronics/agent.yaml
+	kubectl apply -f ./apps/market-reporter/deployment/samsung-electronics/cronjob.yaml
+	kubectl rollout status deployment/samsung-electronics-intelligence-analyst -n kagent --timeout=300s
+
+market-intelligence-samsung-electronics-d:
+	kubectl delete -f ./apps/market-reporter/deployment/samsung-electronics/cronjob.yaml || true
+	kubectl delete -f ./apps/market-reporter/deployment/samsung-electronics/agent.yaml || true
+
+market-intelligence-c: market-intelligence-tesla-c market-intelligence-samsung-electronics-c
+
+market-intelligence-d: market-intelligence-samsung-electronics-d market-intelligence-tesla-d market-intelligence-common-d
+
+market-intelligence-r: market-intelligence-d market-intelligence-c
+
+market-intelligence-run-tesla:
+	@JOB_NAME=tesla-market-intelligence-manual-$$(date +%H%M%S); 	kubectl create job --from=cronjob/tesla-market-intelligence-daily-report -n kagent $$JOB_NAME; 	echo $$JOB_NAME
+
+market-intelligence-run-samsung-electronics:
+	@JOB_NAME=samsung-electronics-market-intelligence-manual-$$(date +%H%M%S); 	kubectl create job --from=cronjob/samsung-electronics-market-intelligence-daily-report -n kagent $$JOB_NAME; 	echo $$JOB_NAME

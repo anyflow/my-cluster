@@ -142,3 +142,22 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: http-blog-anyflow-net
+      hostname: blog.anyflow.net
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-blog-anyflow-net
+      hostname: blog.anyflow.net
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: blog-anyflow-net-tls
+      allowedRoutes:
+        namespaces:
+          from: All

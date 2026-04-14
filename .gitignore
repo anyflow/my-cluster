@@ -2,6 +2,7 @@
 **/openapi-merger
 **/dockebi
 **/dockebi-go
+**/anyflow-blog
 **/staffonly
 **/doc-publisher
 **/deployer
@@ -37,3 +38,5 @@ scripts/remote-kubectl
 
 # ignored runtime secret manifests
 apps/authelia/secret.yaml
+
+apps/market-reporter

@@ -14,15 +14,15 @@ spec:
 
   env:
     - name: GOMEMLIMIT
-      value: 680MiB # memory * 0.85(limit_percentage) * 0.8 80% of hard memory limit is highly recommended by Official README.
+      value: 520MiB # tuned down with the lower hard limit for PoC host protection.
 
   resources:
     requests:
-      cpu: 500m
-      memory: 1000Mi
+      cpu: 250m
+      memory: 256Mi
     limits:
       cpu: 500m
-      memory: 1000Mi
+      memory: 768Mi
 
   replicas: 1
   # autoscaler:
@@ -61,7 +61,6 @@ spec:
             - memory_limiter
             - batch
           exporters:
-            - debug
             # - otlphttp/prometheus
             - prometheusremotewrite # for pushing metrics to prometheus instead of pulling of right above
 
@@ -76,8 +75,6 @@ spec:
         spike_limit_percentage: 17 # default is 20% of hard limit. 17% = 0.85(limit_percentage) * 0.2
 
     exporters:
-      debug:
-        verbosity: basic # default is basic
       # otlphttp/prometheus:
       # metrics_endpoint: http://prometheus-server.cluster.svc.cluster.local:80/api/v1/otlp/v1/metrics
       # tls:
@@ -93,8 +90,8 @@ spec:
         timeout: 30s # (default: 5s) added to address "context deadline exceeded" data dropping error.
         remote_write_queue:
           enabled: true
-          num_consumers: 5 # minimum number of workers to use to fan out the outgoing requests. (default: 5)
-          queue_size: 5000 # default 10000. send_batch_max_size + 1000 applied
+          num_consumers: 2 # reduced for PoC host memory footprint
+          queue_size: 500 # reduced for PoC host memory footprint
         retry_on_failure: # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md
           enabled: true # default true.
           initial_interval: 5s # (default = 5s): Time to wait after the first failure before retrying; ignored

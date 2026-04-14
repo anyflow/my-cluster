@@ -11,7 +11,7 @@ server:
       memory: 10Mi
     limits:
       cpu: 1000m
-      memory: 1Gi
+      memory: 512Mi
 
   extraFlags:
     - web.enable-lifecycle #default
@@ -20,6 +20,8 @@ server:
 
   extraArgs:
     log.level: info
+
+  retention: 1h
 
   replicaCount: 1
   statefulSet:
