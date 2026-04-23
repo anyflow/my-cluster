@@ -1,21 +1,5 @@
-**/manifest-generator
-**/openapi-merger
-**/dockebi
-**/dockebi-go
-**/anyflow-blog
-**/staffonly
-**/doc-publisher
-**/deployer
-**/releaser
-**/references
-**/tester
-**/jenkins-pipeliner
-**/istio-*
-**/cert/*.pem
-**/algorithm
 
 **/nodes*
-**/docserver/output
 
 .vscode
 
@@ -36,9 +20,14 @@ scripts/remote-kubectl
 .omx/
 .mcp.json
 
+apps/dockebi
+apps/anyflow-blog
+apps/market-reporter
+apps/docserver/output
+
+
 # ignored runtime secret manifests
 apps/authelia/secret.yaml
 
-apps/market-reporter
 
 apps/kagent/secret.grafana-mcp.yaml
