@@ -1,6 +1,9 @@
 controller:
   a2aBaseUrl: https://kagent.anyflow.net
 
+proxy:
+  url: http://agentgateway-proxy.agentgateway-system.svc.cluster.local
+
 providers:
   default: openAI
   openAI:

@@ -11,6 +11,50 @@ spec:
         - path:
             type: PathPrefix
             value: /mcp
+          headers:
+            - name: x-kagent-host
+              value: market-intelligence-mcp.kagent
+      backendRefs:
+        - name: market-intelligence-mcp
+          namespace: kagent
+          port: 8000
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /mcp
+          headers:
+            - name: x-kagent-host
+              value: kagent-tools.kagent
+      backendRefs:
+        - name: kagent-tools
+          namespace: kagent
+          port: 8084
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - name: x-kagent-host
+              value: samsung-electronics-intelligence-analyst.kagent
+      backendRefs:
+        - name: samsung-electronics-intelligence-analyst
+          namespace: kagent
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - name: x-kagent-host
+              value: tesla-intelligence-analyst.kagent
+      backendRefs:
+        - name: tesla-intelligence-analyst
+          namespace: kagent
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /mcp
       backendRefs:
         - name: kagent-mcp
           namespace: kagent
