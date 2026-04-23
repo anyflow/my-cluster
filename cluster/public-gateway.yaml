@@ -85,25 +85,6 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    - name: http-jaeger-anyflow-net
-      hostname: jaeger.anyflow.net
-      port: 80
-      protocol: HTTP
-      allowedRoutes:
-        namespaces:
-          from: All
-    - name: https-jaeger-anyflow-net
-      hostname: jaeger.anyflow.net
-      port: 443
-      protocol: HTTPS
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: jaeger-anyflow-net-tls
-      allowedRoutes:
-        namespaces:
-          from: All
     - name: http-kagent-anyflow-net
       hostname: kagent.anyflow.net
       port: 80

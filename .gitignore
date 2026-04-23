@@ -40,3 +40,5 @@ scripts/remote-kubectl
 apps/authelia/secret.yaml
 
 apps/market-reporter
+
+apps/kagent/secret.grafana-mcp.yaml

@@ -2,17 +2,6 @@ include .env
 
 export
 
-create-sidecar: init
-	$(MAKE) port_forward
-	$(MAKE) metric-server-c
-	$(MAKE) istio-sidecar
-	$(MAKE) app
-
-create-ambient: init
-	$(MAKE) port_forward
-	$(MAKE) metric-server-c
-	$(MAKE) istio-ambient
-	$(MAKE) app
 INGRESS_HTTP_NODEPORT ?= 30080
 INGRESS_HTTPS_NODEPORT ?= 30443
 SSH_BLOCKLIST_IPS ?= \
@@ -30,11 +19,30 @@ SSH_ALLOWLIST_IPS ?= \
 	117.111.8.13/32
 GATEWAY_API_VERSION ?= v1.5.1
 GATEWAY_API_STANDARD_INSTALL ?= https://github.com/kubernetes-sigs/gateway-api/releases/download/$(GATEWAY_API_VERSION)/standard-install.yaml
+ISTIO_VERSION ?= 1.29.1
+ISTIO_REVISION ?= $(ISTIO_VERSION)
+ISTIO_DIST_DIR ?= istio-$(ISTIO_VERSION)
 KIALI_CHART_VERSION ?= 2.23.0
 PROMETHEUS_CHART_VERSION ?= 28.14.1
 GRAFANA_CHART_VERSION ?= 10.5.15
 OTEL_OPERATOR_CHART_VERSION ?= 0.109.0
 TEMPO_CHART_VERSION ?= 1.24.4
+AGENTGATEWAY_CHART_VERSION ?= v1.0.0
+KAGENT_CHART_VERSION ?= 0.9.0
+KMCP_CHART_VERSION ?= 0.2.8
+AUTHELIA_VERSION ?= 4.39.16
+
+create-sidecar: init
+	$(MAKE) port_forward
+	$(MAKE) metric-server-c
+	$(MAKE) istio-sidecar
+	$(MAKE) app
+
+create-ambient: init
+	$(MAKE) port_forward
+	$(MAKE) metric-server-c
+	$(MAKE) istio-ambient
+	$(MAKE) app
 
 init: cluster-c helm_repo-c
 istio-sidecar: istio-sidecar-c config-c gateway-c cert_manager-c api-tls-c
@@ -141,7 +149,6 @@ helm_repo-c:
 	helm repo add prometheus https://prometheus-community.github.io/helm-charts
 	helm repo add grafana https://grafana.github.io/helm-charts
 	helm repo add kiali https://kiali.org/helm-charts
-	helm repo add jaeger https://jaegertracing.github.io/helm-charts
 	helm repo add jetstack https://charts.jetstack.io
 	helm repo add argo https://argoproj.github.io/argo-helm
 	helm repo add phntom https://phntom.kix.co.il/charts/
@@ -177,9 +184,9 @@ argocd-cli-c:
 
 istio-sidecar-c:
 	kubectl apply -f ./cluster/namespaces.sidecar.yaml
-	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=1.29.1 --create-namespace --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.sidecar.yaml --version 1.29.1
-	helm upgrade -i public-gateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version 1.29.1
+	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=$(ISTIO_REVISION) --create-namespace --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.sidecar.yaml --version $(ISTIO_VERSION)
+	helm upgrade -i public-gateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version $(ISTIO_VERSION)
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
@@ -187,11 +194,11 @@ istio-sidecar-c:
 istio-ambient-c:
 	kubectl apply -f $(GATEWAY_API_STANDARD_INSTALL)
 	kubectl apply -f ./cluster/namespaces.ambient.yaml
-	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=1.29.1 --create-namespace --wait
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.29.1 --set profile=ambient --wait
-	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=1.29.1 --set profile=ambient --wait
-	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=1.29.1 --wait
-	helm upgrade -i public-gateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version 1.29.1
+	helm upgrade -i istio-base istio/base -n istio-system --set defaultRevision=$(ISTIO_REVISION) --create-namespace --wait
+	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version $(ISTIO_VERSION) --set profile=ambient --wait
+	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=$(ISTIO_REVISION) --set profile=ambient --wait
+	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=$(ISTIO_REVISION) --wait
+	helm upgrade -i public-gateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version $(ISTIO_VERSION)
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/waypoints.yaml
 	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
@@ -288,20 +295,6 @@ tempo-d:
 	helm uninstall tempo -n observability || true
 tempo-r: tempo-d tempo-c
 
-jaeger-c: cert_manager-c
-	kubectl apply -f ./cluster/public-gateway.yaml
-	kubectl apply -f ./certificate/jaeger-anyflow-net.yaml
-	kubectl wait --for=condition=Ready certificate/jaeger-anyflow-net -n cluster --timeout=600s
-	helm upgrade -i -n observability jaeger jaeger/jaeger -f ./apps/jaeger/values.yaml --version 3.4.1
-	# Keep jaeger-query outside the observability waypoint; headless query service returns 503 via waypoint in this PoC.
-	kubectl label service jaeger-query -n observability istio.io/use-waypoint=none --overwrite
-	kubectl apply -f ./apps/jaeger/httproute.yaml
-jaeger-d:
-	helm uninstall jaeger -n observability || true
-	kubectl delete -f ./apps/jaeger/httproute.yaml || true
-	kubectl delete -f ./certificate/jaeger-anyflow-net.yaml || true
-jaeger-r: jaeger-d jaeger-c
-
 kiali-c: cert_manager-c
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/kiali-anyflow-net.yaml
@@ -393,14 +386,11 @@ docker_registry-d:
 
 
 istioctl-i:
-	curl -L https://istio.io/downloadIstio | sh - && \
-		sudo mv -f istio-1.29.1/bin/istioctl /usr/local/bin/istioctl && \
-		sudo mv istio-1.29.1/tools/_istioctl ~/_istioctl && \
-		rm -rf istio-1.29.1 && \
+	curl -L https://istio.io/downloadIstio | ISTIO_VERSION=$(ISTIO_VERSION) sh - && \
+		sudo mv -f $(ISTIO_DIST_DIR)/bin/istioctl /usr/local/bin/istioctl && \
+		sudo mv $(ISTIO_DIST_DIR)/tools/_istioctl ~/_istioctl && \
+		rm -rf $(ISTIO_DIST_DIR) && \
 		chmod +x /usr/local/bin/istioctl
-AGENTGATEWAY_CHART_VERSION ?= v1.0.0
-KAGENT_CHART_VERSION ?= 0.8.1
-KMCP_CHART_VERSION ?= 0.2.7
 
 kagent-secret-c:
 	@if [ -n "$$OPENAI_API_KEY" ]; then \
@@ -409,22 +399,33 @@ kagent-secret-c:
 		echo "OPENAI_API_KEY is not set; skipping kagent-openai secret creation"; \
 	fi
 
-kagent-c:
+kagent-c: cert_manager-c
 	$(MAKE) kagent-secret-c
+	@test -f ./apps/kagent/secret.grafana-mcp.yaml || (echo "missing apps/kagent/secret.grafana-mcp.yaml" >&2; exit 1)
+	kubectl apply -f ./apps/kagent/secret.grafana-mcp.yaml
 	helm upgrade -i kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds -n kagent --create-namespace --version $(KAGENT_CHART_VERSION) --set kmcp.enabled=false
 	helm upgrade -i kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent -n kagent --create-namespace -f ./apps/kagent/values.yaml --version $(KAGENT_CHART_VERSION) --wait
 	kubectl apply -f ./apps/kagent/agentgateway-services.yaml
 	kubectl apply -f ./apps/kagent/referencegrant-agentgateway.yaml
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s
+	kubectl apply -f ./apps/kagent/httproute.yaml
+	kubectl apply -f ./apps/kagent/authzpolicy.yaml
 	kubectl rollout status deployment/kagent-controller -n kagent --timeout=300s
 	$(MAKE) kmcp-c
 
 kagent-d:
+	kubectl delete -f ./apps/kagent/authzpolicy.yaml || true
+	kubectl delete -f ./apps/kagent/httproute.yaml || true
+	kubectl delete -f ./certificate/kagent-anyflow-net.yaml || true
 	kubectl delete -f ./apps/kagent/referencegrant-agentgateway.yaml || true
 	kubectl delete -f ./apps/kagent/agentgateway-services.yaml || true
 	$(MAKE) kmcp-d
 	helm uninstall kagent -n kagent || true
 	helm uninstall kagent-crds -n kagent || true
 	kubectl delete secret kagent-openai -n kagent || true
+	kubectl delete -f ./apps/kagent/secret.grafana-mcp.yaml || true
 
 kmcp-c:
 	helm upgrade -i kmcp-crds oci://ghcr.io/kagent-dev/kmcp/helm/kmcp-crds -n kagent --create-namespace --version $(KMCP_CHART_VERSION)
@@ -441,82 +442,41 @@ agentgateway-c: kagent-c
 	kubectl apply -f ./apps/agentgateway/proxy-gateway.yaml
 	kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Programmed")].status}'=True gateway/agentgateway-proxy -n agentgateway-system --timeout=300s
 	kubectl apply -f ./apps/agentgateway/route-to-kagent.yaml
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
+	kubectl patch deployment agentgateway-proxy -n agentgateway-system --type=strategic -p '{"spec":{"template":{"spec":{"containers":[{"name":"admin-ui-proxy","image":"alpine/socat:latest","args":["TCP-LISTEN:15001,fork,reuseaddr,bind=0.0.0.0","TCP:127.0.0.1:15000"],"ports":[{"containerPort":15001,"name":"admin-ui","protocol":"TCP"}]}]}}}}'
+	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
+	kubectl apply -f ./apps/agentgateway/admin-service.yaml
+	kubectl apply -f ./apps/agentgateway/httproute.yaml
+	kubectl apply -f ./apps/agentgateway/authzpolicy.yaml
 	kubectl rollout status deployment/agentgateway -n agentgateway-system --timeout=300s
 	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
 
 agentgateway-d:
+	kubectl delete -f ./apps/agentgateway/authzpolicy.yaml || true
+	kubectl delete -f ./apps/agentgateway/httproute.yaml || true
+	kubectl delete -f ./apps/agentgateway/admin-service.yaml || true
+	kubectl delete -f ./certificate/agentgateway-anyflow-net.yaml || true
 	kubectl delete -f ./apps/agentgateway/route-to-kagent.yaml || true
 	kubectl delete -f ./apps/agentgateway/proxy-gateway.yaml || true
 	helm uninstall agentgateway -n agentgateway-system || true
 	helm uninstall agentgateway-crds -n agentgateway-system || true
 
-kagent-public-c: cert_manager-c agentgateway-c
-	kubectl apply -f ./cluster/public-gateway.yaml
-	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
-	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s
-	kubectl apply -f ./apps/kagent/httproute.yaml
-
-kagent-public-d:
-	kubectl delete -f ./apps/kagent/httproute.yaml || true
-	kubectl delete -f ./certificate/kagent-anyflow-net.yaml || true
-
-kagent-r: kagent-public-d agentgateway-d kagent-d kagent-public-c
-
-agentgateway-admin-patch-c:
-	kubectl patch deployment agentgateway-proxy -n agentgateway-system --type='strategic' -p '{"spec":{"template":{"spec":{"containers":[{"name":"admin-ui-proxy","image":"alpine/socat:latest","args":["TCP-LISTEN:15001,fork,reuseaddr,bind=0.0.0.0","TCP:127.0.0.1:15000"],"ports":[{"containerPort":15001,"name":"admin-ui","protocol":"TCP"}]}]}}}}'
-	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
-	kubectl apply -f ./apps/agentgateway/admin-service.yaml
-
-agentgateway-public-c: cert_manager-c agentgateway-c
-	kubectl apply -f ./cluster/public-gateway.yaml
-	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
-	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
-	$(MAKE) agentgateway-admin-patch-c
-	kubectl apply -f ./apps/agentgateway/httproute.yaml
-
-agentgateway-public-d:
-	kubectl delete -f ./apps/agentgateway/httproute.yaml || true
-	kubectl delete -f ./apps/agentgateway/admin-service.yaml || true
-	kubectl delete -f ./certificate/agentgateway-anyflow-net.yaml || true
-
-
-AUTHELIA_VERSION ?= 4.39.16
-
-authelia-secrets-c:
-	@test -f ./apps/authelia/secret.yaml || (echo "missing apps/authelia/secret.yaml" >&2; exit 1)
-	kubectl apply -f ./apps/authelia/secret.yaml
 
 authelia-c: cert_manager-c
-	$(MAKE) authelia-secrets-c
+	@test -f ./apps/authelia/secret.yaml || (echo "missing apps/authelia/secret.yaml" >&2; exit 1)
+	kubectl apply -f ./apps/authelia/secret.yaml
 	kubectl apply -f ./apps/authelia/deployment.yaml
 	kubectl rollout status deployment/authelia -n cluster --timeout=300s
-	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version 1.29.1 --set profile=ambient --wait
 	kubectl apply -f ./apps/authelia/auth-httproute.yaml
 	kubectl apply -f ./apps/authelia/logout-httproute.yaml
-	kubectl apply -f ./apps/kagent/authzpolicy.yaml
-	kubectl apply -f ./apps/agentgateway/authzpolicy.yaml
 
 authelia-d:
-	kubectl delete -f ./apps/agentgateway/authzpolicy.yaml || true
-	kubectl delete -f ./apps/kagent/authzpolicy.yaml || true
 	kubectl delete -f ./apps/authelia/logout-httproute.yaml || true
 	kubectl delete -f ./apps/authelia/auth-httproute.yaml || true
 	kubectl delete -f ./apps/authelia/deployment.yaml || true
 	kubectl delete secret authelia-config -n cluster || true
-
-current-public-c: cert_manager-c kagent-c agentgateway-c authelia-c
-	kubectl apply -f ./cluster/public-gateway.yaml
-	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
-	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s
-	kubectl apply -f ./apps/kagent/httproute.yaml
-	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
-	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
-	$(MAKE) agentgateway-admin-patch-c
-	kubectl apply -f ./apps/agentgateway/httproute.yaml
-
-current-public-d: authelia-d agentgateway-public-d kagent-public-d agentgateway-d kagent-d
-
-current-public-r: current-public-d current-public-c
 
 
 anyflow-blog-c: cert_manager-c
@@ -570,8 +530,3 @@ market-intelligence-d: market-intelligence-samsung-electronics-d market-intellig
 
 market-intelligence-r: market-intelligence-d market-intelligence-c
 
-market-intelligence-run-tesla:
-	@JOB_NAME=tesla-market-intelligence-manual-$$(date +%H%M%S); 	kubectl create job --from=cronjob/tesla-market-intelligence-daily-report -n kagent $$JOB_NAME; 	echo $$JOB_NAME
-
-market-intelligence-run-samsung-electronics:
-	@JOB_NAME=samsung-electronics-market-intelligence-manual-$$(date +%H%M%S); 	kubectl create job --from=cronjob/samsung-electronics-market-intelligence-daily-report -n kagent $$JOB_NAME; 	echo $$JOB_NAME

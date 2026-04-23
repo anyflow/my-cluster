@@ -108,9 +108,9 @@ Considering it operates locally, using three worker nodes is unnecessary. Howeve
 Below is a list of supported (✅) or planned to be supported (🚧) apps. For more details, refer to the `README.md` in the respective app directory.
 
 - **✅ `docker-registry`**: [`/apps/docker-registry/README.md`](./apps/docker-registry/README.md)
-- 🚧 `jaeger`
-- 🚧 `prmetheus`
-- 🚧 `grafana`
+- **✅ `kagent` / `kmcp`**: Kubernetes-native agents and MCP server controller are installed in `kagent` namespace.
+- **✅ `authelia`**: External auth portal for `kagent` and `agentgateway` UI.
+- **✅ `grafana` / `tempo` / `prometheus`**: Current observability stack. `kagent` tracing uses OTLP -> Tempo.
 - 🚧 `argocd`
 
 ## Description of Techniques Used in My Cluster

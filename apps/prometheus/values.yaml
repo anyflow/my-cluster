@@ -11,7 +11,7 @@ server:
       memory: 10Mi
     limits:
       cpu: 1000m
-      memory: 512Mi
+      memory: 1Gi
 
   extraFlags:
     - web.enable-lifecycle #default

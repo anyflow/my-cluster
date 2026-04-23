@@ -45,11 +45,6 @@ datasources:
         type: tempo
         url: http://tempo.observability.svc.cluster.local:3200
         access: proxy
-      - name: Jaeger
-        uid: jaeger
-        type: jaeger
-        url: http://jaeger-query.observability.svc.cluster.local:16686
-        access: proxy
 
 dashboardProviders:
   dashboardproviders.yaml:

@@ -56,7 +56,6 @@ spec:
           exporters:
             - debug
             - otlphttp/tempo
-            - otlphttp/jaeger
 
         logs:
           receivers:
@@ -114,5 +113,3 @@ spec:
           max_elapsed_time: 300s
       otlphttp/tempo:
         endpoint: http://tempo.observability.svc.cluster.local:4318
-      otlphttp/jaeger:
-        endpoint: http://jaeger-collector.observability.svc.cluster.local:4318

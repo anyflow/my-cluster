@@ -9,7 +9,52 @@ providers:
     apiKeySecretRef: kagent-openai
     apiKeySecretKey: OPENAI_API_KEY
 
+otel:
+  tracing:
+    enabled: true
+    exporter:
+      otlp:
+        endpoint: http://otel-otlp-collector.observability.svc.cluster.local:4317
+        protocol: grpc
+        insecure: true
+        timeout: 15
+
+grafana-mcp:
+  grafana:
+    url: http://grafana.observability.svc.cluster.local
+    secretRef: kagent-grafana-mcp-ext
+
+kagent-tools:
+  otel:
+    tracing:
+      enabled: true
+      exporter:
+        otlp:
+          endpoint: http://otel-otlp-collector.observability.svc.cluster.local:4317
+          insecure: true
+          timeout: 15
+  tools:
+    enabledTools:
+      - k8s
+      - helm
+      - istio
+      - prometheus
+      - kubescape
+      - utils
+
 agents:
+  k8s-agent:
+    enabled: true
+  kgateway-agent:
+    enabled: true
+  istio-agent:
+    enabled: true
+  promql-agent:
+    enabled: true
+  observability-agent:
+    enabled: true
+  helm-agent:
+    enabled: true
   argo-rollouts-agent:
     enabled: false
   cilium-policy-agent:
@@ -18,6 +63,16 @@ agents:
     enabled: false
   cilium-debug-agent:
     enabled: false
+
+querydoc:
+  otel:
+    tracing:
+      enabled: true
+      exporter:
+        otlp:
+          endpoint: http://otel-otlp-collector.observability.svc.cluster.local:4317
+          insecure: true
+          timeout: 10000
 
 kmcp:
   enabled: false
