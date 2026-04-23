@@ -27,10 +27,14 @@ PROMETHEUS_CHART_VERSION ?= 28.14.1
 GRAFANA_CHART_VERSION ?= 10.5.15
 OTEL_OPERATOR_CHART_VERSION ?= 0.109.0
 TEMPO_CHART_VERSION ?= 1.24.4
-AGENTGATEWAY_CHART_VERSION ?= v1.0.0
+AGENTGATEWAY_CHART_VERSION ?= 1.1.0
 KAGENT_CHART_VERSION ?= 0.9.0
 KMCP_CHART_VERSION ?= 0.2.8
+KAGENT_GRAFANA_MCP_IMAGE ?= mcp/grafana@sha256:18622ba05381b08c622666c1cb1f92f05d54cb23709b7d580ab783e710973f37
 AUTHELIA_VERSION ?= 4.39.16
+PROMETHEUS_POD_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
+PROMETHEUS_SERVICE_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+
 
 create-sidecar: init
 	$(MAKE) port_forward
@@ -245,9 +249,6 @@ dockebi-d:
 	kubectl delete -k ./apps/dockebi/deployment
 dockebi-r: dockebi-d dockebi-c
 
-PROMETHEUS_POD_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
-PROMETHEUS_SERVICE_MONITORS_CRD := https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.72.0/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
-
 prometheus-c: cert_manager-c
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/prometheus-anyflow-net.yaml
@@ -403,8 +404,11 @@ kagent-c: cert_manager-c
 	$(MAKE) kagent-secret-c
 	@test -f ./apps/kagent/secret.grafana-mcp.yaml || (echo "missing apps/kagent/secret.grafana-mcp.yaml" >&2; exit 1)
 	kubectl apply -f ./apps/kagent/secret.grafana-mcp.yaml
-	helm upgrade -i kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds -n kagent --create-namespace --version $(KAGENT_CHART_VERSION) --set kmcp.enabled=false
+	$(MAKE) kmcp-d
+	helm upgrade -i kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds -n kagent --create-namespace --version $(KAGENT_CHART_VERSION)
 	helm upgrade -i kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent -n kagent --create-namespace -f ./apps/kagent/values.yaml --version $(KAGENT_CHART_VERSION) --wait
+	kubectl set image deployment/kagent-grafana-mcp -n kagent grafana-mcp=$(KAGENT_GRAFANA_MCP_IMAGE)
+	kubectl rollout status deployment/kagent-grafana-mcp -n kagent --timeout=300s
 	kubectl apply -f ./apps/kagent/agentgateway-services.yaml
 	kubectl apply -f ./apps/kagent/referencegrant-agentgateway.yaml
 	kubectl apply -f ./cluster/public-gateway.yaml
@@ -428,11 +432,11 @@ kagent-d:
 	kubectl delete -f ./apps/kagent/secret.grafana-mcp.yaml || true
 
 kmcp-c:
-	helm upgrade -i kmcp-crds oci://ghcr.io/kagent-dev/kmcp/helm/kmcp-crds -n kagent --create-namespace --version $(KMCP_CHART_VERSION)
-	helm upgrade -i kmcp oci://ghcr.io/kagent-dev/kmcp/helm/kmcp -n kagent --create-namespace --version $(KMCP_CHART_VERSION) --wait
-	kubectl rollout status deployment/kmcp-controller-manager -n kagent --timeout=300s
+	@echo "kmcp is bundled with kagent; ensuring bundled controller is ready"
+	kubectl rollout status deployment/kagent-kmcp-controller-manager -n kagent --timeout=300s
 
 kmcp-d:
+	@echo "removing legacy standalone kmcp releases if present"
 	helm uninstall kmcp -n kagent || true
 	helm uninstall kmcp-crds -n kagent || true
 
@@ -452,8 +456,14 @@ agentgateway-c: kagent-c
 	kubectl apply -f ./apps/agentgateway/authzpolicy.yaml
 	kubectl rollout status deployment/agentgateway -n agentgateway-system --timeout=300s
 	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
+	$(MAKE) market-intelligence-c
+	$(MAKE) stock-agent-c
+	$(MAKE) istio-agent-c
 
 agentgateway-d:
+	$(MAKE) istio-agent-d
+	$(MAKE) stock-agent-d
+	$(MAKE) market-intelligence-d
 	kubectl delete -f ./apps/agentgateway/authzpolicy.yaml || true
 	kubectl delete -f ./apps/agentgateway/httproute.yaml || true
 	kubectl delete -f ./apps/agentgateway/admin-service.yaml || true
@@ -530,3 +540,20 @@ market-intelligence-d: market-intelligence-samsung-electronics-d market-intellig
 
 market-intelligence-r: market-intelligence-d market-intelligence-c
 
+stock-agent-c:
+	kubectl apply -f ./apps/kagent/custom/stock-agent.yaml
+	kubectl rollout status deployment/stock-agent -n kagent --timeout=300s
+
+stock-agent-d:
+	kubectl delete -f ./apps/kagent/custom/stock-agent.yaml || true
+
+stock-agent-r: stock-agent-d stock-agent-c
+
+istio-agent-c:
+	kubectl apply -f ./apps/kagent/custom/istio-agent.yaml
+	kubectl rollout status deployment/istio-agent -n kagent --timeout=300s
+
+istio-agent-d:
+	kubectl delete -f ./apps/kagent/custom/istio-agent.yaml || true
+
+istio-agent-r: istio-agent-d istio-agent-c

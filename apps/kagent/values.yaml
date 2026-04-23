@@ -26,6 +26,9 @@ grafana-mcp:
   grafana:
     url: http://grafana.observability.svc.cluster.local
     secretRef: kagent-grafana-mcp-ext
+  image:
+    tag: latest
+    pullPolicy: Always
 
 kagent-tools:
   otel:
@@ -49,7 +52,7 @@ agents:
   k8s-agent:
     enabled: true
   istio-agent:
-    enabled: true
+    enabled: false
   promql-agent:
     enabled: true
   observability-agent:
@@ -78,4 +81,4 @@ querydoc:
           timeout: 10000
 
 kmcp:
-  enabled: false
+  enabled: true

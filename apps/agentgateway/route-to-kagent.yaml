@@ -32,6 +32,28 @@ spec:
     - matches:
         - path:
             type: PathPrefix
+            value: /mcp
+          headers:
+            - name: x-kagent-host
+              value: kagent-grafana-mcp.kagent
+      backendRefs:
+        - name: kagent-grafana-mcp
+          namespace: kagent
+          port: 8000
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - name: x-kagent-host
+              value: promql-agent.kagent
+      backendRefs:
+        - name: promql-agent
+          namespace: kagent
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
             value: /
           headers:
             - name: x-kagent-host

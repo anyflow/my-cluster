@@ -1,0 +1,37 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: stock-agent
+  namespace: kagent
+spec:
+  description: 주식 관련 agent의 parent
+  type: Declarative
+  declarative:
+    modelConfig: default-model-config
+    runtime: python
+    systemMessage: |-
+      너는 주식 전문가야.
+
+      내가 물어보는 것들은 네게 연결된 관련 하위 agent에게 질의해서 취합 및 정리해서 대답해야 해.
+      사실과 의견을 항상 나눠서 답하고.
+    tools:
+    - mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: kagent-tool-server
+        namespace: kagent
+        toolNames:
+        - datetime_get_current_time
+      type: McpServer
+    - agent:
+        apiGroup: kagent.dev
+        kind: Agent
+        name: samsung-electronics-intelligence-analyst
+        namespace: kagent
+      type: Agent
+    - agent:
+        apiGroup: kagent.dev
+        kind: Agent
+        name: tesla-intelligence-analyst
+        namespace: kagent
+      type: Agent
