@@ -45,8 +45,6 @@ kagent-tools:
 agents:
   k8s-agent:
     enabled: true
-  kgateway-agent:
-    enabled: true
   istio-agent:
     enabled: true
   promql-agent:
@@ -55,6 +53,8 @@ agents:
     enabled: true
   helm-agent:
     enabled: true
+  kgateway-agent:
+    enabled: false
   argo-rollouts-agent:
     enabled: false
   cilium-policy-agent:
