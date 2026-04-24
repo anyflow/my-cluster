@@ -1,0 +1,48 @@
+apiVersion: kagent.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: stock-mcp
+  namespace: kagent
+spec:
+  transportType: http
+  httpTransport:
+    path: /mcp
+    targetPort: 8000
+  deployment:
+    image: market-reporter:latest
+    imagePullPolicy: Never
+    cmd: sh
+    args:
+    - -c
+    - export OPENAI_API_KEY="$(cat /var/run/openai/OPENAI_API_KEY)" && python -m market_reporter.mcp_server
+    port: 8000
+    env:
+      REPORTS_REPO_URL: git@github.com:anyflow/reports.git
+      REPORTS_REPO_BRANCH: main
+      REPORTS_GIT_AUTHOR_NAME: anyflow
+      REPORTS_GIT_AUTHOR_EMAIL: anyflow@users.noreply.github.com
+      GIT_SSH_COMMAND: ssh -i /var/run/reports-git/id_rsa -o UserKnownHostsFile=/var/run/reports-git/known_hosts
+        -o StrictHostKeyChecking=yes
+    volumes:
+    - name: reports-git-ssh
+      secret:
+        secretName: reports-git-ssh
+        defaultMode: 256
+    - name: openai-api-key
+      secret:
+        secretName: kagent-openai
+        defaultMode: 256
+    volumeMounts:
+    - name: reports-git-ssh
+      mountPath: /var/run/reports-git
+      readOnly: true
+    - name: openai-api-key
+      mountPath: /var/run/openai
+      readOnly: true
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi

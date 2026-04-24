@@ -13,9 +13,9 @@ spec:
             value: /mcp
           headers:
             - name: x-kagent-host
-              value: market-intelligence-mcp.kagent
+              value: stock-mcp.kagent
       backendRefs:
-        - name: market-intelligence-mcp
+        - name: stock-mcp
           namespace: kagent
           port: 8000
     - matches:
@@ -57,9 +57,9 @@ spec:
             value: /
           headers:
             - name: x-kagent-host
-              value: samsung-electronics-intelligence-analyst.kagent
+              value: samsung-stock-agent.kagent
       backendRefs:
-        - name: samsung-electronics-intelligence-analyst
+        - name: samsung-stock-agent
           namespace: kagent
           port: 8080
     - matches:
@@ -68,9 +68,9 @@ spec:
             value: /
           headers:
             - name: x-kagent-host
-              value: tesla-intelligence-analyst.kagent
+              value: tesla-stock-agent.kagent
       backendRefs:
-        - name: tesla-intelligence-analyst
+        - name: tesla-stock-agent
           namespace: kagent
           port: 8080
     - matches:

@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: samsung-stock-daily-report
+  namespace: kagent
+spec:
+  schedule: 5 8 * * *
+  timeZone: Asia/Seoul
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: reporter
+            image: market-reporter:latest
+            imagePullPolicy: Never
+            command:
+            - python
+            - -m
+            - market_reporter.batch
+            - --target
+            - samsung-electronics
+            env:
+            - name: REPORTS_REPO_URL
+              value: git@github.com:anyflow/reports.git
+            - name: REPORTS_REPO_BRANCH
+              value: main
+            - name: REPORTS_GIT_AUTHOR_NAME
+              value: anyflow
+            - name: REPORTS_GIT_AUTHOR_EMAIL
+              value: anyflow@users.noreply.github.com
+            - name: GIT_SSH_COMMAND
+              value: ssh -i /var/run/reports-git/id_rsa -o UserKnownHostsFile=/var/run/reports-git/known_hosts
+                -o StrictHostKeyChecking=yes
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kagent-openai
+                  key: OPENAI_API_KEY
+            volumeMounts:
+            - name: reports-git-ssh
+              mountPath: /var/run/reports-git
+              readOnly: true
+          volumes:
+          - name: reports-git-ssh
+            secret:
+              secretName: reports-git-ssh
+              defaultMode: 256

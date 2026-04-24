@@ -456,14 +456,12 @@ agentgateway-c: kagent-c
 	kubectl apply -f ./apps/agentgateway/authzpolicy.yaml
 	kubectl rollout status deployment/agentgateway -n agentgateway-system --timeout=300s
 	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
-	$(MAKE) market-intelligence-c
+	$(MAKE) stock-mcp-c
 	$(MAKE) stock-agent-c
-	$(MAKE) istio-agent-c
 
 agentgateway-d:
-	$(MAKE) istio-agent-d
 	$(MAKE) stock-agent-d
-	$(MAKE) market-intelligence-d
+	$(MAKE) stock-mcp-d
 	kubectl delete -f ./apps/agentgateway/authzpolicy.yaml || true
 	kubectl delete -f ./apps/agentgateway/httproute.yaml || true
 	kubectl delete -f ./apps/agentgateway/admin-service.yaml || true
@@ -500,45 +498,51 @@ anyflow-blog-d:
 anyflow-blog-r: anyflow-blog-d anyflow-blog-c
 
 
-market-intelligence-render:
-	cd ./apps/market-reporter && 		tmpdir=$$(mktemp -d) && 		python3 -m venv "$$tmpdir/venv" && 		. "$$tmpdir/venv/bin/activate" && 		pip install -q -r requirements.txt && 		PYTHONPATH=src TARGETS_DIR=$$(pwd)/targets python -m market_reporter.render_manifests
+stock-mcp-image-c:
+	$(MAKE) -C apps/market-reporter image-c
 
-market-intelligence-image-c: market-intelligence-render
-	cd ./apps/market-reporter && docker build -t market-reporter:latest .
-	kind load docker-image market-reporter:latest --name my-cluster
+stock-mcp-common-c: stock-mcp-image-c
+	kubectl apply -f ./apps/kagent/custom/stock-mcp.yaml
+	kubectl delete remotemcpserver market-intelligence-mcp -n kagent --ignore-not-found
+	kubectl rollout status deployment/stock-mcp -n kagent --timeout=300s
 
-market-intelligence-common-c: market-intelligence-image-c
-	kubectl apply -f ./apps/market-reporter/deployment/common/mcpserver.yaml
-	kubectl apply -f ./apps/market-reporter/deployment/common/remotemcpserver.yaml
-	kubectl rollout status deployment/market-intelligence-mcp -n kagent --timeout=300s
+stock-mcp-common-d:
+	kubectl delete mcpserver market-intelligence-mcp -n kagent --ignore-not-found
+	kubectl delete remotemcpserver market-intelligence-mcp -n kagent --ignore-not-found
+	kubectl delete -f ./apps/kagent/custom/stock-mcp.yaml || true
 
-market-intelligence-common-d:
-	kubectl delete -f ./apps/market-reporter/deployment/common/remotemcpserver.yaml || true
-	kubectl delete -f ./apps/market-reporter/deployment/common/mcpserver.yaml || true
+stock-mcp-tesla-c: stock-mcp-common-c
+	kubectl apply -f ./apps/kagent/custom/tesla-stock-agent.yaml
+	kubectl apply -f ./apps/kagent/custom/tesla-stock-daily-report.yaml
+	kubectl rollout status deployment/tesla-stock-agent -n kagent --timeout=300s
+	kubectl delete agent tesla-intelligence-analyst -n kagent --ignore-not-found
+	kubectl delete cronjob tesla-market-intelligence-daily-report -n kagent --ignore-not-found
 
-market-intelligence-tesla-c: market-intelligence-common-c
-	kubectl apply -f ./apps/market-reporter/deployment/tesla/agent.yaml
-	kubectl apply -f ./apps/market-reporter/deployment/tesla/cronjob.yaml
-	kubectl rollout status deployment/tesla-intelligence-analyst -n kagent --timeout=300s
+stock-mcp-tesla-d:
+	kubectl delete -f ./apps/kagent/custom/tesla-stock-daily-report.yaml || true
+	kubectl delete -f ./apps/kagent/custom/tesla-stock-agent.yaml || true
+	kubectl delete agent tesla-intelligence-analyst -n kagent --ignore-not-found
+	kubectl delete cronjob tesla-market-intelligence-daily-report -n kagent --ignore-not-found
 
-market-intelligence-tesla-d:
-	kubectl delete -f ./apps/market-reporter/deployment/tesla/cronjob.yaml || true
-	kubectl delete -f ./apps/market-reporter/deployment/tesla/agent.yaml || true
+stock-mcp-samsung-c: stock-mcp-common-c
+	kubectl apply -f ./apps/kagent/custom/samsung-stock-agent.yaml
+	kubectl apply -f ./apps/kagent/custom/samsung-stock-daily-report.yaml
+	kubectl rollout status deployment/samsung-stock-agent -n kagent --timeout=300s
+	kubectl delete agent samsung-electronics-intelligence-analyst -n kagent --ignore-not-found
+	kubectl delete cronjob samsung-electronics-market-intelligence-daily-report -n kagent --ignore-not-found
 
-market-intelligence-samsung-electronics-c: market-intelligence-common-c
-	kubectl apply -f ./apps/market-reporter/deployment/samsung-electronics/agent.yaml
-	kubectl apply -f ./apps/market-reporter/deployment/samsung-electronics/cronjob.yaml
-	kubectl rollout status deployment/samsung-electronics-intelligence-analyst -n kagent --timeout=300s
+stock-mcp-samsung-d:
+	kubectl delete -f ./apps/kagent/custom/samsung-stock-daily-report.yaml || true
+	kubectl delete -f ./apps/kagent/custom/samsung-stock-agent.yaml || true
+	kubectl delete agent samsung-electronics-intelligence-analyst -n kagent --ignore-not-found
+	kubectl delete cronjob samsung-electronics-market-intelligence-daily-report -n kagent --ignore-not-found
 
-market-intelligence-samsung-electronics-d:
-	kubectl delete -f ./apps/market-reporter/deployment/samsung-electronics/cronjob.yaml || true
-	kubectl delete -f ./apps/market-reporter/deployment/samsung-electronics/agent.yaml || true
+stock-mcp-c: stock-mcp-tesla-c stock-mcp-samsung-c
+	kubectl delete mcpserver market-intelligence-mcp -n kagent --ignore-not-found
 
-market-intelligence-c: market-intelligence-tesla-c market-intelligence-samsung-electronics-c
+stock-mcp-d: stock-mcp-samsung-d stock-mcp-tesla-d stock-mcp-common-d
 
-market-intelligence-d: market-intelligence-samsung-electronics-d market-intelligence-tesla-d market-intelligence-common-d
-
-market-intelligence-r: market-intelligence-d market-intelligence-c
+stock-mcp-r: stock-mcp-d stock-mcp-c
 
 stock-agent-c:
 	kubectl apply -f ./apps/kagent/custom/stock-agent.yaml
@@ -548,12 +552,3 @@ stock-agent-d:
 	kubectl delete -f ./apps/kagent/custom/stock-agent.yaml || true
 
 stock-agent-r: stock-agent-d stock-agent-c
-
-istio-agent-c:
-	kubectl apply -f ./apps/kagent/custom/istio-agent.yaml
-	kubectl rollout status deployment/istio-agent -n kagent --timeout=300s
-
-istio-agent-d:
-	kubectl delete -f ./apps/kagent/custom/istio-agent.yaml || true
-
-istio-agent-r: istio-agent-d istio-agent-c

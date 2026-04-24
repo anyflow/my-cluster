@@ -26,12 +26,12 @@ spec:
     - agent:
         apiGroup: kagent.dev
         kind: Agent
-        name: samsung-electronics-intelligence-analyst
+        name: samsung-stock-agent
         namespace: kagent
       type: Agent
     - agent:
         apiGroup: kagent.dev
         kind: Agent
-        name: tesla-intelligence-analyst
+        name: tesla-stock-agent
         namespace: kagent
       type: Agent
