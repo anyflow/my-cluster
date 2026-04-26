@@ -1,7 +1,7 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: public-gateway-agentgateway-authelia
+  name: public-gateway-agentgateway-oauth2-proxy
   namespace: cluster
 spec:
   selector:
@@ -9,12 +9,12 @@ spec:
       app: public-gateway
   action: CUSTOM
   provider:
-    name: authelia
+    name: oauth2-proxy
   rules:
     - to:
         - operation:
             hosts:
               - agentgateway.anyflow.net
             notPaths:
-              - /auth*
+              - /oauth2*
               - /logout

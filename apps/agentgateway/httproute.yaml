@@ -22,7 +22,7 @@ spec:
             scheme: https
             path:
               type: ReplaceFullPath
-              replaceFullPath: /auth/logout
+              replaceFullPath: /oauth2/sign_out?rd=https%3A%2F%2Fapi.anyflow.net%2Fauth%2Flogout
             statusCode: 302
     - matches:
         - path:
@@ -35,6 +35,14 @@ spec:
               type: ReplaceFullPath
               replaceFullPath: /ui/
             statusCode: 302
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /oauth2
+      backendRefs:
+        - name: oauth2-proxy
+          namespace: cluster
+          port: 80
     - matches:
         - path:
             type: PathPrefix

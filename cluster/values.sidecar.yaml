@@ -110,3 +110,26 @@ meshConfig:
           - set-cookie
         headersToDownstreamOnAllow:
           - set-cookie
+    - name: oauth2-proxy
+      envoyExtAuthzHttp:
+        service: oauth2-proxy.cluster.svc.cluster.local
+        port: 80
+        includeRequestHeadersInCheck:
+          - accept
+          - cookie
+          - authorization
+          - proxy-authorization
+          - x-forwarded-for
+          - x-forwarded-host
+          - x-forwarded-proto
+          - x-forwarded-uri
+        headersToUpstreamOnAllow:
+          - x-auth-request-user
+          - x-auth-request-email
+          - x-auth-request-preferred-username
+        includeAdditionalHeadersInCheck:
+          X-Forwarded-Proto: 'https'
+        headersToDownstreamOnDeny:
+          - location
+          - set-cookie
+          - content-type

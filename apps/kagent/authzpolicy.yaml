@@ -1,7 +1,7 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: public-gateway-kagent-authelia
+  name: public-gateway-kagent-oauth2-proxy
   namespace: cluster
 spec:
   selector:
@@ -9,13 +9,12 @@ spec:
       app: public-gateway
   action: CUSTOM
   provider:
-    name: authelia
+    name: oauth2-proxy
   rules:
     - to:
         - operation:
             hosts:
               - kagent.anyflow.net
             notPaths:
-              - /api/a2a*
-              - /mcp*
+              - /oauth2*
               - /logout

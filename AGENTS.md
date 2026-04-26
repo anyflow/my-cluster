@@ -145,16 +145,20 @@
 - `kmcp`는 현재 standalone chart가 아니라 `kagent` chart에 bundled 된 형태로 `kagent` namespace에 배치된다.
 - `agentgateway`는 `kagent`의 A2A/MCP 앞단 프록시로 설치되어 있다.
 - `kagent` namespace는 ambient + 전용 waypoint(`waypoint-kagent`)가 적용되어 있다.
-- `Authelia`는 `api.anyflow.net/auth` 경로로 공통 로그인 포털을 제공한다.
+- `Authelia`는 `api.anyflow.net/auth` 경로로 PoC IdP와 실제 credential 검증 화면을 제공한다.
+- `oauth2-proxy`는 `public-gateway`의 단일 ext_authz provider로 UI session cookie와 API/A2A/MCP Bearer JWT를 검증한다.
+- kagent/agentgateway UI의 브라우저 인증은 oauth2-proxy가 세션을 관리하고 Authelia IdP authorization endpoint로 직접 redirect한다.
 
 ### 외부 엔드포인트
 
 - `https://kagent.anyflow.net/` -> `kagent` UI (로그인 필요)
-- `https://kagent.anyflow.net/api/a2a/...` -> `kagent` A2A (비보호)
-- `https://kagent.anyflow.net/mcp` -> `kagent` MCP via `agentgateway` (비보호)
+- `https://kagent.anyflow.net/api/a2a/...` -> `kagent` A2A (Bearer JWT 필요)
+- `https://kagent.anyflow.net/mcp` -> `kagent` MCP via `agentgateway` (Bearer JWT 필요)
 - `https://agentgateway.anyflow.net/ui/` -> `agentgateway` admin UI (로그인 필요)
-- `https://api.anyflow.net/auth` -> `Authelia` 로그인 포털
-- `https://api.anyflow.net/logout` -> 공통 로그아웃 진입점
+- `https://kagent.anyflow.net/oauth2/...`, `https://agentgateway.anyflow.net/oauth2/...` -> `oauth2-proxy` OIDC redirect/callback
+- `https://api.anyflow.net/oauth2/...` -> 공통 logout chain용 `oauth2-proxy`
+- `https://api.anyflow.net/auth` -> `Authelia` IdP 로그인 포털
+- `https://api.anyflow.net/logout` -> 공통 로그아웃 진입점. oauth2-proxy session cookie를 먼저 제거한 뒤 Authelia logout으로 이동한다.
 
 ### 핵심 구성
 
@@ -174,12 +178,14 @@
   - `kagent-mcp` -> `appProtocol: agentgateway.dev/mcp`
 - `ReferenceGrant`: `apps/kagent/referencegrant-agentgateway.yaml`
 - external route: `apps/kagent/httproute.yaml`
+  - `/oauth2`는 `oauth2-proxy`
   - `/api/a2a`, `/mcp`는 `agentgateway-proxy`
+  - `/api`는 `kagent-controller`
   - `/`는 `kagent-ui`
-  - `/logout`는 `api.anyflow.net/auth/logout`로 redirect
+  - `/logout`는 `https://api.anyflow.net/oauth2/sign_out?rd=https%3A%2F%2Fapi.anyflow.net%2Fauth%2Flogout`로 redirect
 - auth policy: `apps/kagent/authzpolicy.yaml`
-  - `kagent UI`만 보호
-  - `/api/a2a`, `/mcp`, `/logout`는 예외 처리
+  - `kagent UI`, `/api`, `/api/a2a`, `/mcp`를 `oauth2-proxy`로 보호
+  - `/oauth2`, `/logout`만 예외 처리
 - Helm 기본 prebuilt `istio-agent`를 사용한다.
 - `stock-agent`도 커스텀 선언형 CRD `apps/kagent/custom/stock-agent.yaml`로 관리한다.
 - `stock-mcp`, target별 stock agent, daily report CronJob은 `apps/kagent/custom` 선언형 YAML로 수동 관리한다.
@@ -204,12 +210,13 @@
 - kagent upstream route: `apps/agentgateway/route-to-kagent.yaml`
 - admin UI route: `apps/agentgateway/httproute.yaml`
   - `/` -> `/ui/` redirect
+  - `/oauth2` -> `oauth2-proxy`
   - `/ui`, `/config_dump` -> `agentgateway-admin`
-  - `/logout` -> `api.anyflow.net/auth/logout` redirect
+  - `/logout` -> `https://api.anyflow.net/oauth2/sign_out?rd=https%3A%2F%2Fapi.anyflow.net%2Fauth%2Flogout` redirect
 - admin service: `apps/agentgateway/admin-service.yaml`
 - auth policy: `apps/agentgateway/authzpolicy.yaml`
-  - `agentgateway UI`만 보호
-  - `/auth`, `/logout`는 예외 처리
+  - `agentgateway UI`를 `oauth2-proxy`로 보호
+  - `/oauth2`, `/logout`만 예외 처리
 - `route-to-kagent.yaml`은 현재 다음 내부 backend를 header-match로 직접 라우팅한다.
   - `stock-mcp.kagent`
   - `kagent-tools.kagent`
@@ -223,12 +230,36 @@
 
 - deployment/service: `apps/authelia/deployment.yaml`
 - auth route: `apps/authelia/auth-httproute.yaml`
+  - `/auth` -> `authelia`
+  - `/oauth2` -> `oauth2-proxy`
 - logout route: `apps/authelia/logout-httproute.yaml`
 - 실제 secret: `apps/authelia/secret.yaml`
   - `stringData` 기반 선언형 Secret
   - `.gitignore`로 비추적
 - 예시 secret: `apps/authelia/secret.example.yaml`
 - `create-secret.sh`는 제거되었다.
+- OIDC provider/client 설정을 포함한다.
+  - `my-cluster-oauth2-proxy`: browser auth code flow용
+    - `consent_mode: implicit`으로 Authelia consent 화면을 건너뛰고 oauth2-proxy callback을 처리한다.
+  - `my-cluster-local`: local Mac client_credentials Bearer JWT 검증용
+
+##### oauth2-proxy
+
+- Helm values: `apps/oauth2-proxy/values.yaml`
+- 실제 secret: `apps/oauth2-proxy/secret.yaml`
+  - `.gitignore`로 비추적한다.
+- 예시 secret: `apps/oauth2-proxy/secret.example.yaml`
+- `ReferenceGrant`: `apps/oauth2-proxy/referencegrant-agentgateway.yaml`
+- Makefile 진입점: `oauth2-proxy-c`, `oauth2-proxy-d`
+- Helm chart: `oauth2-proxy/oauth2-proxy` `10.4.3`
+- image: `quay.io/oauth2-proxy/oauth2-proxy:v7.15.2`
+- `configFile`은 chart default와 같은 설정을 원칙적으로 생략하고, 운영 contract상 명시가 필요한 설정만 남긴다.
+- cookie domain은 `.anyflow.net`이다.
+- `api_routes`는 `^/api/.*`, `^/mcp.*`이며 무토큰 요청은 login redirect가 아니라 401/403으로 거부한다.
+- `skip_provider_button = true`로 Authelia IdP authorization endpoint로 직접 보낸다.
+- `/logout`은 `https://api.anyflow.net/oauth2/sign_out`을 먼저 거쳐 session cookie를 지우고, `rd`로 Authelia logout을 호출해 IdP session도 지운다.
+- Bearer JWT는 Authelia issuer `https://api.anyflow.net/auth`와 audience `my-cluster-api` 기준으로 검증한다.
+- local Mac credential은 repository가 아니라 `~/.ai/secrets/my-cluster/oauth-client.env`에 둔다.
 
 ### agentgateway admin UI 노출 방식
 
@@ -244,6 +275,7 @@
 
 ```sh
 make authelia-c
+make oauth2-proxy-c
 make agentgateway-c
 ```
 
@@ -251,6 +283,7 @@ make agentgateway-c
 
 - cert-manager issuer
 - Authelia secret + deployment + auth/logout route
+- oauth2-proxy secret + Helm release + ReferenceGrant
 - kagent + bundled kmcp + Secret + A2A/MCP services + external route + certificate + auth policy
 - agentgateway + proxy gateway + upstream route + admin patch + admin service + external route + certificate + auth policy
 - `stock-mcp` common MCP + tesla/samsung stock agents + cronjobs 복원
@@ -261,6 +294,7 @@ make agentgateway-c
 ```sh
 make kagent-c
 make kmcp-c
+make oauth2-proxy-c
 make stock-mcp-c
 make stock-agent-c
 make agentgateway-c
@@ -273,9 +307,12 @@ make authelia-c
 - `agentgateway.anyflow.net` TLS: Ready
 - `kagent` UI: 로그인 후 접근 가능
 - `agentgateway` UI: 로그인 후 접근 가능
-- `kagent` A2A: 비보호 접근 유지
-- `Authelia` 기반 SSO: 동작 확인
-- `api.anyflow.net/logout`: 공통 로그아웃 진입점으로 동작 확인
+- `Authelia` OIDC discovery/JWKS/token endpoint: 동작 확인
+- `oauth2-proxy` direct provider redirect: 동작 확인
+- `kagent` controller API(`/api/agents`): Bearer JWT 요청 시 public-gateway에서 `kagent-controller`로 라우팅되어 정상 응답 확인
+- `kagent` A2A/MCP 무토큰 요청: 401/403으로 차단
+- `kagent` A2A/MCP Bearer JWT 요청: oauth2-proxy 검증 후 backend 도달 확인
+- `api.anyflow.net/logout`: oauth2-proxy + Authelia session logout chain으로 동작 확인
 - `stock-agent`, `tesla-stock-agent`, `samsung-stock-agent`: `Ready=True`, `Accepted=True`
 - `stock-mcp`: `MCPServer Ready=True`; target별 Agent가 `kind: MCPServer`로 직접 참조
 - `kagent-grafana-mcp`, `kagent-tool-server`: `RemoteMCPServer Accepted=True`
@@ -286,6 +323,7 @@ make authelia-c
 
 - `agentgateway` admin UI 노출은 현재 `agentgateway-proxy` deployment에 `admin-ui-proxy` sidecar patch를 재적용하는 구조다. patch 없는 방식으로 전환하거나, 현재 구조를 유지한다면 `agentgateway-c` 복구 절차를 계속 보장할 것.
 - `apps/authelia/secret.yaml`는 의도적으로 비추적 파일이다. 재설치 시 필수라는 점을 유지 문서/운영 절차에 계속 반영할 것.
+- `apps/oauth2-proxy/secret.yaml`와 `~/.ai/secrets/my-cluster/oauth-client.env`도 의도적으로 비추적이다.
 - `kagent-grafana-mcp` upstream은 현재 semver image tag를 제공하지 않는다. `Makefile`의 digest pin을 주기적으로 갱신할 절차를 둘 것.
 - `kagent-tools`의 Istio waypoint tool은 chart 기본 upstream 동작을 따른다. waypoint list/status 인자 문제가 재현되면 upstream 수정 여부를 먼저 확인할 것.
 - 커스텀 선언형으로 관리하는 `stock-agent`, `tesla-stock-agent`, `samsung-stock-agent`, target별 CronJob은 재설치 후 동작을 계속 검증할 것.
@@ -302,6 +340,7 @@ make authelia-c
 
 - runtime 상의 application 변경 요청은 별도 요구가 없는한 GitOps 기반으로 대응할 것. 즉, 코드 상에 먼저 변경하고 이를 apply하도록.
 - 이 저장소의 source of truth는 `alpine remote`의 `~/workspace/my-cluster` 작업트리다.
+- harness 역시 로컬이 아니라 `alpine remote`의 `~/workspace/my-cluster/.ai` 기준으로 확인할 것.
 - 리소스/manifest 변경, 검증, 커밋은 모두 remote 기준으로 수행할 것.
 - 로컬 작업트리의 리소스 변경은 원칙적으로 의미 없는 임시 작업으로 취급할 것.
 - 로컬 변경은 문서 초안 같은 예외적 경우에만 허용하고, 리소스 변경은 로컬에서 커밋하지 말 것.
