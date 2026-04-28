@@ -11,6 +11,8 @@ providers:
     model: gpt-4.1-mini
     apiKeySecretRef: kagent-openai
     apiKeySecretKey: OPENAI_API_KEY
+    config:
+      baseUrl: http://agentgateway-proxy.agentgateway-system.svc.cluster.local/v1
 
 otel:
   tracing:
