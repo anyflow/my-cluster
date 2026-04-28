@@ -397,12 +397,9 @@ istioctl-i:
 
 kagent-secret-c:
 	@if [ -n "$$OPENAI_API_KEY" ]; then \
-		kubectl create namespace kagent --dry-run=client -o yaml | kubectl apply -f -; \
-		kubectl create namespace agentgateway-system --dry-run=client -o yaml | kubectl apply -f -; \
 		kubectl create secret generic kagent-openai -n kagent --from-literal OPENAI_API_KEY="$$OPENAI_API_KEY" --dry-run=client -o yaml | kubectl apply -f -; \
-		kubectl create secret generic openai-secret -n agentgateway-system --from-literal Authorization="$$OPENAI_API_KEY" --dry-run=client -o yaml | kubectl apply -f -; \
 	else \
-		echo "OPENAI_API_KEY is not set; skipping kagent-openai and agentgateway openai-secret creation"; \
+		echo "OPENAI_API_KEY is not set; skipping kagent-openai secret creation"; \
 	fi
 
 kagent-c: cert_manager-c oauth2-proxy-c
@@ -452,7 +449,6 @@ agentgateway-c: kagent-c
 	kubectl apply -f ./apps/agentgateway/proxy-gateway.yaml
 	kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Programmed")].status}'=True gateway/agentgateway-proxy -n agentgateway-system --timeout=300s
 	kubectl apply -f ./apps/agentgateway/route-to-kagent.yaml
-	kubectl apply -f ./apps/agentgateway/openai-backend.yaml
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
@@ -474,7 +470,6 @@ agentgateway-d:
 	kubectl delete -f ./apps/agentgateway/httproute.yaml || true
 	kubectl delete -f ./apps/agentgateway/admin-service.yaml || true
 	kubectl delete -f ./certificate/agentgateway-anyflow-net.yaml || true
-	kubectl delete -f ./apps/agentgateway/openai-backend.yaml || true
 	kubectl delete -f ./apps/agentgateway/route-to-kagent.yaml || true
 	kubectl delete -f ./apps/agentgateway/proxy-gateway.yaml || true
 	helm uninstall agentgateway -n agentgateway-system || true
