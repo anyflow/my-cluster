@@ -31,4 +31,5 @@ apps/docserver/output
 apps/authelia/secret.yaml
 apps/oauth2-proxy/secret.yaml
 
+apps/kagent/secret.openai.yaml
 apps/kagent/secret.grafana-mcp.yaml
