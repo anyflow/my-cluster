@@ -29,7 +29,7 @@ apps/docserver/output
 
 # ignored runtime secret manifests
 apps/authelia/secret.yaml
-apps/oauth2-proxy/secret.yaml
 
 apps/agentgateway/secret.openai.yaml
+apps/agentgateway/secret.oidc.yaml
 apps/kagent/secret.grafana-mcp.yaml

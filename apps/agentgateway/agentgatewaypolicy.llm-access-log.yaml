@@ -1,0 +1,27 @@
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: llm-access-log
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway-proxy
+  frontend:
+    accessLog:
+      # Debug-only payload capture for LLM traffic. This logs prompts, completions,
+      # and raw OpenAI-compatible request/response bodies to the agentgateway logs.
+      filter: backend.protocol == "llm"
+      attributes:
+        add:
+          - name: llm.prompt
+            expression: default(toJson(llm.prompt), "[]")
+          - name: llm.completion
+            expression: default(toJson(llm.completion), "[]")
+          - name: llm.params
+            expression: default(toJson(llm.params), "{}")
+          - name: llm.request.body
+            expression: default(string(request.body), "")
+          - name: llm.response.body
+            expression: default(string(response.body), "")

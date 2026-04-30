@@ -22,16 +22,8 @@ spec:
             scheme: https
             path:
               type: ReplaceFullPath
-              replaceFullPath: /oauth2/sign_out?rd=https%3A%2F%2Fapi.anyflow.net%2Fauth%2Flogout
+              replaceFullPath: /auth/logout
             statusCode: 302
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /oauth2
-      backendRefs:
-        - name: oauth2-proxy
-          namespace: cluster
-          port: 80
     - matches:
         - path:
             type: PathPrefix
@@ -51,14 +43,12 @@ spec:
             type: PathPrefix
             value: /api
       backendRefs:
-        - name: kagent-controller
-          namespace: kagent
-          port: 8083
+        - name: agentgateway-proxy
+          port: 80
     - matches:
         - path:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: kagent-ui
-          namespace: kagent
-          port: 8080
+        - name: agentgateway-proxy
+          port: 80

@@ -1,0 +1,169 @@
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayParameters
+metadata:
+  name: agentgateway-proxy
+  namespace: agentgateway-system
+spec:
+  env:
+    - name: OIDC_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: agentgateway-oidc-secret
+          key: client-id
+    - name: OIDC_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: agentgateway-oidc-secret
+          key: client-secret
+    - name: OIDC_COOKIE_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: agentgateway-oidc-secret
+          key: oidc-cookie-secret
+  rawConfig:
+    policies:
+      - name:
+          name: kagent-mcp-stock-jwt
+          namespace: agentgateway-system
+        target:
+          route:
+            name: kagent-external
+            namespace: agentgateway-system
+            ruleName: kagent-mcp-stock
+            kind: HTTPRoute
+        phase: route
+        policy:
+          jwtAuth: &authelia_api_jwt
+            mode: strict
+            issuer: https://api.anyflow.net/auth
+            audiences:
+              - my-cluster-api
+            jwks:
+              url: https://api.anyflow.net/auth/jwks.json
+            jwtValidationOptions:
+              requiredClaims:
+                - exp
+                - iss
+                - aud
+      - name:
+          name: kagent-mcp-tools-jwt
+          namespace: agentgateway-system
+        target:
+          route:
+            name: kagent-external
+            namespace: agentgateway-system
+            ruleName: kagent-mcp-tools
+            kind: HTTPRoute
+        phase: route
+        policy:
+          jwtAuth: *authelia_api_jwt
+      - name:
+          name: kagent-mcp-grafana-jwt
+          namespace: agentgateway-system
+        target:
+          route:
+            name: kagent-external
+            namespace: agentgateway-system
+            ruleName: kagent-mcp-grafana
+            kind: HTTPRoute
+        phase: route
+        policy:
+          jwtAuth: *authelia_api_jwt
+      - name:
+          name: kagent-mcp-jwt
+          namespace: agentgateway-system
+        target:
+          route:
+            name: kagent-external
+            namespace: agentgateway-system
+            ruleName: kagent-mcp
+            kind: HTTPRoute
+        phase: route
+        policy:
+          jwtAuth: *authelia_api_jwt
+      - name:
+          name: kagent-a2a-samsung-jwt
+          namespace: agentgateway-system
+        target:
+          route:
+            name: kagent-external
+            namespace: agentgateway-system
+            ruleName: kagent-a2a-samsung
+            kind: HTTPRoute
+        phase: route
+        policy:
+          jwtAuth: *authelia_api_jwt
+      - name:
+          name: kagent-a2a-tesla-jwt
+          namespace: agentgateway-system
+        target:
+          route:
+            name: kagent-external
+            namespace: agentgateway-system
+            ruleName: kagent-a2a-tesla
+            kind: HTTPRoute
+        phase: route
+        policy:
+          jwtAuth: *authelia_api_jwt
+      - name:
+          name: kagent-a2a-jwt
+          namespace: agentgateway-system
+        target:
+          route:
+            name: kagent-external
+            namespace: agentgateway-system
+            ruleName: kagent-a2a
+            kind: HTTPRoute
+        phase: route
+        policy:
+          jwtAuth: *authelia_api_jwt
+      - name:
+          name: kagent-api-oidc
+          namespace: agentgateway-system
+        target:
+          route:
+            name: kagent-external
+            namespace: agentgateway-system
+            ruleName: kagent-api
+            kind: HTTPRoute
+        phase: route
+        policy:
+          oidc: &kagent_browser_oidc
+            issuer: https://api.anyflow.net/auth
+            clientId: ${OIDC_CLIENT_ID}
+            clientSecret: ${OIDC_CLIENT_SECRET}
+            redirectURI: https://kagent.anyflow.net/oauth2/callback
+            scopes:
+              - email
+              - profile
+      - name:
+          name: kagent-browser-oidc
+          namespace: agentgateway-system
+        target:
+          route:
+            name: kagent-external
+            namespace: agentgateway-system
+            ruleName: kagent-browser
+            kind: HTTPRoute
+        phase: route
+        policy:
+          oidc: *kagent_browser_oidc
+      - name:
+          name: agentgateway-admin-oidc
+          namespace: agentgateway-system
+        target:
+          route:
+            name: agentgateway-admin-external
+            namespace: agentgateway-system
+            ruleName: agentgateway-admin
+            kind: HTTPRoute
+        phase: route
+        policy:
+          oidc:
+            issuer: https://api.anyflow.net/auth
+            clientId: ${OIDC_CLIENT_ID}
+            clientSecret: ${OIDC_CLIENT_SECRET}
+            redirectURI: https://agentgateway.anyflow.net/oauth2/callback
+            scopes:
+              - email
+              - profile

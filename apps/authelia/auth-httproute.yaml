@@ -14,13 +14,6 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /oauth2
-      backendRefs:
-        - name: oauth2-proxy
-          port: 80
-    - matches:
-        - path:
-            type: PathPrefix
             value: /auth
       backendRefs:
         - name: authelia

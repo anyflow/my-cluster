@@ -20,5 +20,5 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /oauth2/sign_out?rd=https%3A%2F%2Fapi.anyflow.net%2Fauth%2Flogout
+              replaceFullPath: /auth/logout
             statusCode: 302
