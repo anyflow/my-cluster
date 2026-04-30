@@ -242,7 +242,7 @@
     - `consent_mode: implicit`으로 Authelia consent 화면을 건너뛰고 agentgateway callback을 처리한다.
   - `my-cluster-cli`: local CLI Authorization Code + PKCE Bearer JWT 발급용 public client
     - `public: true`, `require_pkce: true`, `pkce_challenge_method: S256`, `token_endpoint_auth_method: none`
-    - redirect URI는 `http://localhost/callback`, audience는 `my-cluster-api`다.
+    - redirect URI는 `http://localhost/callback`, `http://127.0.0.1:8765/callback`, audience는 `my-cluster-api`다.
   - `my-cluster-local`: local Mac client_credentials Bearer JWT 검증용
 
 ##### oauth2-proxy
