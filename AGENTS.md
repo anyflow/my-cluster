@@ -165,7 +165,8 @@
 ##### kagent
 
 - values: `apps/kagent/values.yaml`
-- OpenAI provider는 `kagent-openai` Secret 참조를 사용한다.
+- `providers.openAI`는 kagent SDK 초기화를 위한 dummy Secret `apps/kagent/secret.dummy.yaml`를 참조한다.
+- 실제 OpenAI credential은 agentgateway의 `apps/agentgateway/secret.openai.yaml`와 `AgentgatewayBackend/openai`에서만 관리한다.
 - 실제 Grafana MCP secret: `apps/kagent/secret.grafana-mcp.yaml`
   - `kagent-grafana-mcp-ext` Secret를 선언한다.
   - `.gitignore`로 비추적한다.
@@ -206,25 +207,26 @@
 ##### agentgateway
 
 - values: `apps/agentgateway/values.yaml`
-- 내부 proxy gateway: `apps/agentgateway/proxy-gateway.yaml`
-- kagent upstream route: `apps/agentgateway/route-to-kagent.yaml`
-- admin UI route: `apps/agentgateway/httproute.yaml`
+- 내부 proxy gateway: `apps/agentgateway/gateway.proxy.yaml`
+- kagent upstream route: `apps/agentgateway/httproute.kagent.yaml`
+- OpenAI backend route: `apps/agentgateway/agentgatewaybackend.openai.yaml`
+- admin UI route: `apps/agentgateway/httproute.agentgateway-admin.yaml`
   - `/` -> `/ui/` redirect
   - `/oauth2` -> `oauth2-proxy`
   - `/ui`, `/config_dump` -> `agentgateway-admin`
   - `/logout` -> `https://api.anyflow.net/oauth2/sign_out?rd=https%3A%2F%2Fapi.anyflow.net%2Fauth%2Flogout` redirect
-- admin service: `apps/agentgateway/admin-service.yaml`
-- auth policy: `apps/agentgateway/authzpolicy.yaml`
+- admin service: `apps/agentgateway/service.agentgateway-admin.yaml`
+- auth policy: `apps/agentgateway/authorizationpolicy.agentgateway-admin.yaml`
   - `agentgateway UI`를 `oauth2-proxy`로 보호
   - `/oauth2`, `/logout`만 예외 처리
-- `route-to-kagent.yaml`은 현재 다음 내부 backend를 header-match로 직접 라우팅한다.
+- `httproute.kagent.yaml`은 현재 다음 내부 backend를 header-match로 직접 라우팅한다.
   - `stock-mcp.kagent`
   - `kagent-tools.kagent`
   - `kagent-grafana-mcp.kagent`
-  - `promql-agent.kagent`
-  - `samsung-stock-agent.kagent`
-  - `tesla-stock-agent.kagent`
+  - `samsung-stock-agent.kagent` -> `samsung-stock-agent-a2a` -> `samsung-stock-agent:8080`
+  - `tesla-stock-agent.kagent` -> `tesla-stock-agent-a2a` -> `tesla-stock-agent:8080`
   - fallback: `kagent-mcp`, `kagent-a2a`
+- `stock-agent`의 하위 agent A2A 호출은 `agentgateway`를 경유하지만 `kagent-controller`로 URLRewrite하지 않고 각 agent runtime Service로 직접 라우팅한다.
 
 ##### Authelia
 
@@ -265,7 +267,7 @@
 
 `agentgateway` admin UI는 기본적으로 proxy pod 내부 loopback `127.0.0.1:15000`에 뜬다. `Service`만으로 직접 노출되지 않아서, 현재는 `agentgateway-proxy` deployment에 sidecar를 patch해 `0.0.0.0:15001 -> 127.0.0.1:15000` 포워딩을 만든다.
 
-- admin service: `apps/agentgateway/admin-service.yaml`
+- admin service: `apps/agentgateway/service.agentgateway-admin.yaml`
 
 즉 admin UI 기능 자체는 upstream이 제공하지만, 외부 공개 경로는 현재 patch 기반 구현이다.
 

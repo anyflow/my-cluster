@@ -11,10 +11,10 @@ spec:
   deployment:
     image: market-reporter:latest
     imagePullPolicy: Never
-    cmd: sh
+    cmd: python
     args:
-    - -c
-    - export OPENAI_API_KEY="$(cat /var/run/openai/OPENAI_API_KEY)" && python -m market_reporter.mcp_server
+    - -m
+    - market_reporter.mcp_server
     port: 8000
     env:
       REPORTS_REPO_URL: git@github.com:anyflow/reports.git
@@ -23,21 +23,17 @@ spec:
       REPORTS_GIT_AUTHOR_EMAIL: anyflow@users.noreply.github.com
       GIT_SSH_COMMAND: ssh -i /var/run/reports-git/id_rsa -o UserKnownHostsFile=/var/run/reports-git/known_hosts
         -o StrictHostKeyChecking=yes
+      # Dummy client credential. The real OpenAI credential is attached by agentgateway.
+      OPENAI_API_KEY: unused
+      OPENAI_BASE_URL: http://agentgateway-proxy.agentgateway-system.svc.cluster.local/v1
     volumes:
     - name: reports-git-ssh
       secret:
         secretName: reports-git-ssh
         defaultMode: 256
-    - name: openai-api-key
-      secret:
-        secretName: kagent-openai
-        defaultMode: 256
     volumeMounts:
     - name: reports-git-ssh
       mountPath: /var/run/reports-git
-      readOnly: true
-    - name: openai-api-key
-      mountPath: /var/run/openai
       readOnly: true
     resources:
       requests:

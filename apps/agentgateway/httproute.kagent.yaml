@@ -43,14 +43,11 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /
-          headers:
-            - name: x-kagent-host
-              value: promql-agent.kagent
+            value: /mcp
       backendRefs:
-        - name: promql-agent
+        - name: kagent-mcp
           namespace: kagent
-          port: 8080
+          port: 8083
     - matches:
         - path:
             type: PathPrefix
@@ -59,7 +56,7 @@ spec:
             - name: x-kagent-host
               value: samsung-stock-agent.kagent
       backendRefs:
-        - name: samsung-stock-agent
+        - name: samsung-stock-agent-a2a
           namespace: kagent
           port: 8080
     - matches:
@@ -70,17 +67,9 @@ spec:
             - name: x-kagent-host
               value: tesla-stock-agent.kagent
       backendRefs:
-        - name: tesla-stock-agent
+        - name: tesla-stock-agent-a2a
           namespace: kagent
           port: 8080
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /mcp
-      backendRefs:
-        - name: kagent-mcp
-          namespace: kagent
-          port: 8083
     - matches:
         - path:
             type: PathPrefix

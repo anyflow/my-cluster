@@ -33,3 +33,37 @@ spec:
       targetPort: 8083
       protocol: TCP
       appProtocol: agentgateway.dev/mcp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: samsung-stock-agent-a2a
+  namespace: kagent
+spec:
+  type: ClusterIP
+  selector:
+    app: kagent
+    kagent: samsung-stock-agent
+  ports:
+    - name: a2a
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: kgateway.dev/a2a
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tesla-stock-agent-a2a
+  namespace: kagent
+spec:
+  type: ClusterIP
+  selector:
+    app: kagent
+    kagent: tesla-stock-agent
+  ports:
+    - name: a2a
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: kgateway.dev/a2a

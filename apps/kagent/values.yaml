@@ -7,10 +7,13 @@ proxy:
 providers:
   default: openAI
   openAI:
+    # kagent still needs an OpenAI-compatible provider/model and api key field
+    # to initialize its client. The key below is a dummy internal placeholder;
+    # the real upstream OpenAI credential is owned by agentgateway.
     provider: OpenAI
     model: gpt-4.1-mini
-    apiKeySecretRef: kagent-openai
-    apiKeySecretKey: OPENAI_API_KEY
+    apiKeySecretRef: dummy
+    apiKeySecretKey: dummy
     config:
       baseUrl: http://agentgateway-proxy.agentgateway-system.svc.cluster.local/v1
 

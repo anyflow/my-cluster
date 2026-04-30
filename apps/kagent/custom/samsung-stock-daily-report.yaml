@@ -36,11 +36,11 @@ spec:
             - name: GIT_SSH_COMMAND
               value: ssh -i /var/run/reports-git/id_rsa -o UserKnownHostsFile=/var/run/reports-git/known_hosts
                 -o StrictHostKeyChecking=yes
+            # Dummy client credential. The real OpenAI credential is attached by agentgateway.
             - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: kagent-openai
-                  key: OPENAI_API_KEY
+              value: unused
+            - name: OPENAI_BASE_URL
+              value: http://agentgateway-proxy.agentgateway-system.svc.cluster.local/v1
             volumeMounts:
             - name: reports-git-ssh
               mountPath: /var/run/reports-git

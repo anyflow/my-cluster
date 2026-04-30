@@ -396,8 +396,7 @@ istioctl-i:
 		chmod +x /usr/local/bin/istioctl
 
 kagent-c: cert_manager-c oauth2-proxy-c
-	@test -f ./apps/kagent/secret.openai.yaml || (echo "missing apps/kagent/secret.openai.yaml" >&2; exit 1)
-	kubectl apply -f ./apps/kagent/secret.openai.yaml
+	kubectl apply -f ./apps/kagent/secret.dummy.yaml
 	@test -f ./apps/kagent/secret.grafana-mcp.yaml || (echo "missing apps/kagent/secret.grafana-mcp.yaml" >&2; exit 1)
 	kubectl apply -f ./apps/kagent/secret.grafana-mcp.yaml
 	$(MAKE) kmcp-d
@@ -425,7 +424,7 @@ kagent-d:
 	$(MAKE) kmcp-d
 	helm uninstall kagent -n kagent || true
 	helm uninstall kagent-crds -n kagent || true
-	kubectl delete secret kagent-openai -n kagent || true
+	kubectl delete -f ./apps/kagent/secret.dummy.yaml || true
 	kubectl delete -f ./apps/kagent/secret.grafana-mcp.yaml || true
 
 kmcp-c:
@@ -438,21 +437,23 @@ kmcp-d:
 	helm uninstall kmcp-crds -n kagent || true
 
 agentgateway-c: kagent-c
+	@test -f ./apps/agentgateway/secret.openai.yaml || (echo "missing apps/agentgateway/secret.openai.yaml" >&2; exit 1)
+	kubectl apply -f ./apps/agentgateway/secret.openai.yaml
 	helm upgrade -i agentgateway-crds oci://cr.agentgateway.dev/charts/agentgateway-crds --create-namespace --namespace agentgateway-system --version $(AGENTGATEWAY_CHART_VERSION) --set controller.image.pullPolicy=Always
 	helm upgrade -i agentgateway oci://cr.agentgateway.dev/charts/agentgateway --namespace agentgateway-system --version $(AGENTGATEWAY_CHART_VERSION) -f ./apps/agentgateway/values.yaml --wait
-	kubectl apply -f ./apps/agentgateway/proxy-gateway.yaml
+	kubectl apply -f ./apps/agentgateway/gateway.proxy.yaml
 	kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Programmed")].status}'=True gateway/agentgateway-proxy -n agentgateway-system --timeout=300s
-	kubectl apply -f ./apps/agentgateway/route-to-kagent.yaml
-	kubectl apply -f ./apps/agentgateway/openai-backend.yaml
+	kubectl apply -f ./apps/agentgateway/httproute.kagent.yaml
+	kubectl apply -f ./apps/agentgateway/agentgatewaybackend.openai.yaml
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
 	kubectl patch deployment agentgateway-proxy -n agentgateway-system --type=strategic -p '{"spec":{"template":{"spec":{"containers":[{"name":"admin-ui-proxy","image":"alpine/socat:latest","args":["TCP-LISTEN:15001,fork,reuseaddr,bind=0.0.0.0","TCP:127.0.0.1:15000"],"ports":[{"containerPort":15001,"name":"admin-ui","protocol":"TCP"}]}]}}}}'
 	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
-	kubectl apply -f ./apps/agentgateway/admin-service.yaml
-	kubectl apply -f ./apps/agentgateway/httproute.yaml
+	kubectl apply -f ./apps/agentgateway/service.agentgateway-admin.yaml
+	kubectl apply -f ./apps/agentgateway/httproute.agentgateway-admin.yaml
 	kubectl delete authorizationpolicy public-gateway-agentgateway-authelia -n cluster --ignore-not-found
-	kubectl apply -f ./apps/agentgateway/authzpolicy.yaml
+	kubectl apply -f ./apps/agentgateway/authorizationpolicy.agentgateway-admin.yaml
 	kubectl rollout status deployment/agentgateway -n agentgateway-system --timeout=300s
 	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
 	$(MAKE) stock-mcp-c
@@ -461,15 +462,16 @@ agentgateway-c: kagent-c
 agentgateway-d:
 	$(MAKE) stock-agent-d
 	$(MAKE) stock-mcp-d
-	kubectl delete -f ./apps/agentgateway/authzpolicy.yaml || true
-	kubectl delete -f ./apps/agentgateway/httproute.yaml || true
-	kubectl delete -f ./apps/agentgateway/admin-service.yaml || true
+	kubectl delete -f ./apps/agentgateway/authorizationpolicy.agentgateway-admin.yaml || true
+	kubectl delete -f ./apps/agentgateway/httproute.agentgateway-admin.yaml || true
+	kubectl delete -f ./apps/agentgateway/service.agentgateway-admin.yaml || true
 	kubectl delete -f ./certificate/agentgateway-anyflow-net.yaml || true
-	kubectl delete -f ./apps/agentgateway/openai-backend.yaml || true
-	kubectl delete -f ./apps/agentgateway/route-to-kagent.yaml || true
-	kubectl delete -f ./apps/agentgateway/proxy-gateway.yaml || true
+	kubectl delete -f ./apps/agentgateway/agentgatewaybackend.openai.yaml || true
+	kubectl delete -f ./apps/agentgateway/httproute.kagent.yaml || true
+	kubectl delete -f ./apps/agentgateway/gateway.proxy.yaml || true
 	helm uninstall agentgateway -n agentgateway-system || true
 	helm uninstall agentgateway-crds -n agentgateway-system || true
+	kubectl delete -f ./apps/agentgateway/secret.openai.yaml || true
 
 
 authelia-c: cert_manager-c
