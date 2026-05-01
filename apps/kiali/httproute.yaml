@@ -11,7 +11,27 @@ spec:
   hostnames:
     - kiali.anyflow.net
   rules:
-    - matches:
+    - name: kiali-logout
+      matches:
+        - path:
+            type: Exact
+            value: /logout
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Set-Cookie
+                value: agw_oidc_s_c40c87c1a4797d94=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure
+        - type: RequestRedirect
+          requestRedirect:
+            hostname: api.anyflow.net
+            scheme: https
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /auth/logout
+            statusCode: 302
+    - name: kiali-browser
+      matches:
         - path:
             type: PathPrefix
             value: /

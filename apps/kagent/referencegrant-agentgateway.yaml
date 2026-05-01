@@ -7,7 +7,7 @@ spec:
   from:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      namespace: agentgateway-system
+      namespace: cluster
   to:
     - group: ""
       kind: Service

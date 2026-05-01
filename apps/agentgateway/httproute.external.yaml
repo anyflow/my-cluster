@@ -2,13 +2,34 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: kagent-external
-  namespace: agentgateway-system
+  namespace: cluster
 spec:
   parentRefs:
-    - name: agentgateway-proxy
+    - name: public-gateway
+      namespace: cluster
+      kind: Gateway
   hostnames:
     - kagent.anyflow.net
   rules:
+    - name: kagent-logout
+      matches:
+        - path:
+            type: Exact
+            value: /logout
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Set-Cookie
+                value: agw_oidc_s_4dcbe721409e82b1=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure
+        - type: RequestRedirect
+          requestRedirect:
+            hostname: api.anyflow.net
+            scheme: https
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /auth/logout
+            statusCode: 302
     - name: kagent-mcp-stock
       matches:
         - path:
@@ -110,13 +131,46 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: agentgateway-admin-external
-  namespace: agentgateway-system
+  namespace: cluster
 spec:
   parentRefs:
-    - name: agentgateway-proxy
+    - name: public-gateway
+      namespace: cluster
+      kind: Gateway
   hostnames:
     - agentgateway.anyflow.net
   rules:
+    - name: agentgateway-admin-logout
+      matches:
+        - path:
+            type: Exact
+            value: /logout
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Set-Cookie
+                value: agw_oidc_s_20ab83a6c29dbfa7=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure
+        - type: RequestRedirect
+          requestRedirect:
+            hostname: api.anyflow.net
+            scheme: https
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /auth/logout
+            statusCode: 302
+    - name: agentgateway-admin-root
+      matches:
+        - path:
+            type: Exact
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /ui/
+            statusCode: 302
     - name: agentgateway-admin
       matches:
         - path:

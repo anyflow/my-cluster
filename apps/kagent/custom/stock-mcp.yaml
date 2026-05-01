@@ -25,7 +25,7 @@ spec:
         -o StrictHostKeyChecking=yes
       # Dummy client credential. The real OpenAI credential is attached by agentgateway.
       OPENAI_API_KEY: unused
-      OPENAI_BASE_URL: http://agentgateway-proxy.agentgateway-system.svc.cluster.local/v1
+      OPENAI_BASE_URL: http://public-gateway.cluster.svc.cluster.local/v1
     volumes:
     - name: reports-git-ssh
       secret:

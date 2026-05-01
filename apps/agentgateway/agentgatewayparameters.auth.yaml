@@ -1,9 +1,23 @@
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayParameters
 metadata:
-  name: agentgateway-proxy
-  namespace: agentgateway-system
+  name: public-gateway
+  namespace: cluster
 spec:
+  service:
+    spec:
+      type: NodePort
+      ports:
+        - name: listener-80
+          port: 80
+          protocol: TCP
+          targetPort: 80
+          nodePort: 30080
+        - name: listener-443
+          port: 443
+          protocol: TCP
+          targetPort: 443
+          nodePort: 30443
   deployment:
     spec:
       template:
@@ -38,11 +52,11 @@ spec:
     policies:
       - name:
           name: kagent-mcp-stock-jwt
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: kagent-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: kagent-mcp-stock
             kind: HTTPRoute
         phase: route
@@ -53,7 +67,7 @@ spec:
             audiences:
               - my-cluster-api
             jwks:
-              url: https://api.anyflow.net/auth/jwks.json
+              url: http://authelia.cluster.svc.cluster.local/auth/jwks.json
             jwtValidationOptions:
               requiredClaims:
                 - exp
@@ -61,11 +75,11 @@ spec:
                 - aud
       - name:
           name: kagent-mcp-tools-jwt
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: kagent-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: kagent-mcp-tools
             kind: HTTPRoute
         phase: route
@@ -73,11 +87,11 @@ spec:
           jwtAuth: *authelia_api_jwt
       - name:
           name: kagent-mcp-grafana-jwt
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: kagent-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: kagent-mcp-grafana
             kind: HTTPRoute
         phase: route
@@ -85,11 +99,11 @@ spec:
           jwtAuth: *authelia_api_jwt
       - name:
           name: kagent-mcp-jwt
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: kagent-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: kagent-mcp
             kind: HTTPRoute
         phase: route
@@ -97,11 +111,11 @@ spec:
           jwtAuth: *authelia_api_jwt
       - name:
           name: kagent-a2a-samsung-jwt
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: kagent-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: kagent-a2a-samsung
             kind: HTTPRoute
         phase: route
@@ -109,11 +123,11 @@ spec:
           jwtAuth: *authelia_api_jwt
       - name:
           name: kagent-a2a-tesla-jwt
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: kagent-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: kagent-a2a-tesla
             kind: HTTPRoute
         phase: route
@@ -121,11 +135,11 @@ spec:
           jwtAuth: *authelia_api_jwt
       - name:
           name: kagent-a2a-jwt
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: kagent-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: kagent-a2a
             kind: HTTPRoute
         phase: route
@@ -133,17 +147,21 @@ spec:
           jwtAuth: *authelia_api_jwt
       - name:
           name: kagent-api-oidc
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: kagent-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: kagent-api
             kind: HTTPRoute
         phase: route
         policy:
           oidc: &kagent_browser_oidc
             issuer: https://api.anyflow.net/auth
+            authorizationEndpoint: https://api.anyflow.net/auth/api/oidc/authorization
+            tokenEndpoint: http://authelia.cluster.svc.cluster.local/auth/api/oidc/token
+            jwks:
+              url: http://authelia.cluster.svc.cluster.local/auth/jwks.json
             clientId: ${OIDC_CLIENT_ID}
             clientSecret: ${OIDC_CLIENT_SECRET}
             redirectURI: https://kagent.anyflow.net/oauth2/callback
@@ -152,11 +170,11 @@ spec:
               - profile
       - name:
           name: kagent-browser-oidc
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: kagent-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: kagent-browser
             kind: HTTPRoute
         phase: route
@@ -164,20 +182,93 @@ spec:
           oidc: *kagent_browser_oidc
       - name:
           name: agentgateway-admin-oidc
-          namespace: agentgateway-system
+          namespace: cluster
         target:
           route:
             name: agentgateway-admin-external
-            namespace: agentgateway-system
+            namespace: cluster
             ruleName: agentgateway-admin
             kind: HTTPRoute
         phase: route
         policy:
           oidc:
             issuer: https://api.anyflow.net/auth
+            authorizationEndpoint: https://api.anyflow.net/auth/api/oidc/authorization
+            tokenEndpoint: http://authelia.cluster.svc.cluster.local/auth/api/oidc/token
+            jwks:
+              url: http://authelia.cluster.svc.cluster.local/auth/jwks.json
             clientId: ${OIDC_CLIENT_ID}
             clientSecret: ${OIDC_CLIENT_SECRET}
             redirectURI: https://agentgateway.anyflow.net/oauth2/callback
+            scopes:
+              - email
+              - profile
+      - name:
+          name: kiali-browser-oidc
+          namespace: cluster
+        target:
+          route:
+            name: kiali
+            namespace: istio-system
+            ruleName: kiali-browser
+            kind: HTTPRoute
+        phase: route
+        policy:
+          oidc:
+            issuer: https://api.anyflow.net/auth
+            authorizationEndpoint: https://api.anyflow.net/auth/api/oidc/authorization
+            tokenEndpoint: http://authelia.cluster.svc.cluster.local/auth/api/oidc/token
+            jwks:
+              url: http://authelia.cluster.svc.cluster.local/auth/jwks.json
+            clientId: ${OIDC_CLIENT_ID}
+            clientSecret: ${OIDC_CLIENT_SECRET}
+            redirectURI: https://kiali.anyflow.net/oauth2/callback
+            scopes:
+              - email
+              - profile
+      - name:
+          name: prometheus-browser-oidc
+          namespace: cluster
+        target:
+          route:
+            name: prometheus
+            namespace: observability
+            ruleName: prometheus-browser
+            kind: HTTPRoute
+        phase: route
+        policy:
+          oidc:
+            issuer: https://api.anyflow.net/auth
+            authorizationEndpoint: https://api.anyflow.net/auth/api/oidc/authorization
+            tokenEndpoint: http://authelia.cluster.svc.cluster.local/auth/api/oidc/token
+            jwks:
+              url: http://authelia.cluster.svc.cluster.local/auth/jwks.json
+            clientId: ${OIDC_CLIENT_ID}
+            clientSecret: ${OIDC_CLIENT_SECRET}
+            redirectURI: https://prometheus.anyflow.net/oauth2/callback
+            scopes:
+              - email
+              - profile
+      - name:
+          name: grafana-browser-oidc
+          namespace: cluster
+        target:
+          route:
+            name: grafana
+            namespace: observability
+            ruleName: grafana-browser
+            kind: HTTPRoute
+        phase: route
+        policy:
+          oidc:
+            issuer: https://api.anyflow.net/auth
+            authorizationEndpoint: https://api.anyflow.net/auth/api/oidc/authorization
+            tokenEndpoint: http://authelia.cluster.svc.cluster.local/auth/api/oidc/token
+            jwks:
+              url: http://authelia.cluster.svc.cluster.local/auth/jwks.json
+            clientId: ${OIDC_CLIENT_ID}
+            clientSecret: ${OIDC_CLIENT_SECRET}
+            redirectURI: https://grafana.anyflow.net/oauth2/callback
             scopes:
               - email
               - profile

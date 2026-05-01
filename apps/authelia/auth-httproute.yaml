@@ -15,6 +15,14 @@ spec:
         - path:
             type: PathPrefix
             value: /auth
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: X-Forwarded-Proto
+                value: https
+              - name: X-Forwarded-Host
+                value: api.anyflow.net
       backendRefs:
         - name: authelia
           port: 80

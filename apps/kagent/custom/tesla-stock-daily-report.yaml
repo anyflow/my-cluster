@@ -40,7 +40,7 @@ spec:
             - name: OPENAI_API_KEY
               value: unused
             - name: OPENAI_BASE_URL
-              value: http://agentgateway-proxy.agentgateway-system.svc.cluster.local/v1
+              value: http://public-gateway.cluster.svc.cluster.local/v1
             volumeMounts:
             - name: reports-git-ssh
               mountPath: /var/run/reports-git

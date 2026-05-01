@@ -11,7 +11,27 @@ spec:
   hostnames:
     - prometheus.anyflow.net
   rules:
-    - matches:
+    - name: prometheus-logout
+      matches:
+        - path:
+            type: Exact
+            value: /logout
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Set-Cookie
+                value: agw_oidc_s_1223db55e7fa61ab=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure
+        - type: RequestRedirect
+          requestRedirect:
+            hostname: api.anyflow.net
+            scheme: https
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /auth/logout
+            statusCode: 302
+    - name: prometheus-browser
+      matches:
         - path:
             type: PathPrefix
             value: /

@@ -2,12 +2,12 @@ apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
   name: llm-access-log
-  namespace: agentgateway-system
+  namespace: cluster
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: agentgateway-proxy
+      name: public-gateway
   frontend:
     accessLog:
       # Debug-only payload capture for LLM traffic. This logs prompts, completions,

@@ -49,8 +49,8 @@ create-ambient: init
 	$(MAKE) app
 
 init: cluster-c helm_repo-c
-istio-sidecar: istio-sidecar-c config-c gateway-c cert_manager-c api-tls-c
-istio-ambient: istio-ambient-c config-c gateway-c cert_manager-c api-tls-c
+istio-sidecar: istio-sidecar-c config-c gateway-c cert_manager-c
+istio-ambient: istio-ambient-c config-c gateway-c cert_manager-c
 app: docserver-c dockebi-c
 
 
@@ -190,7 +190,6 @@ istio-sidecar-c:
 	kubectl apply -f ./cluster/namespaces.sidecar.yaml
 	helm upgrade -i istio-base istio/base -n istio-system  --set defaultRevision=$(ISTIO_REVISION) --create-namespace --wait
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.sidecar.yaml --version $(ISTIO_VERSION)
-	helm upgrade -i public-gateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version $(ISTIO_VERSION)
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
 	kubectl apply -f ./cluster/wasmplugin.baggage-filter.yaml
@@ -202,7 +201,6 @@ istio-ambient-c:
 	helm upgrade -i istiod istio/istiod -n istio-system -f ./cluster/values.ambient.yaml --version $(ISTIO_VERSION) --set profile=ambient --wait
 	helm upgrade -i istio-cni istio/cni -n istio-system  --set defaultRevision=$(ISTIO_REVISION) --set profile=ambient --wait
 	helm upgrade -i ztunnel istio/ztunnel -n istio-system --set defaultRevision=$(ISTIO_REVISION) --wait
-	helm upgrade -i public-gateway istio/gateway -n cluster -f ./cluster/values.ingressgateway.yaml --version $(ISTIO_VERSION)
 	kubectl apply -f ./cluster/telemetry.yaml
 	kubectl apply -f ./cluster/waypoints.yaml
 	kubectl apply -f ./cluster/wasmplugin.openapi-endpoint-filter.yaml
@@ -250,7 +248,6 @@ dockebi-d:
 dockebi-r: dockebi-d dockebi-c
 
 prometheus-c: cert_manager-c
-	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/prometheus-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/prometheus-anyflow-net -n cluster --timeout=600s
 	helm upgrade -i prometheus prometheus/prometheus -n observability -f ./apps/prometheus/values.yaml --version $(PROMETHEUS_CHART_VERSION)
@@ -274,7 +271,6 @@ prometheus-d:
 prometheus-r: prometheus-d prometheus-c
 
 grafana-c: cert_manager-c
-	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/grafana-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/grafana-anyflow-net -n cluster --timeout=600s
 	helm upgrade -i grafana grafana/grafana -n observability -f ./apps/grafana/values.yaml --version $(GRAFANA_CHART_VERSION)
@@ -297,7 +293,6 @@ tempo-d:
 tempo-r: tempo-d tempo-c
 
 kiali-c: cert_manager-c
-	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/kiali-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/kiali-anyflow-net -n cluster --timeout=600s
 	helm upgrade -i -n istio-system kiali-server kiali/kiali-server -f ./apps/kiali/values.yaml --version $(KIALI_CHART_VERSION)
@@ -355,13 +350,11 @@ cert_manager-d:
 	helm uninstall cert-manager -n cert-manager || true
 
 api-tls-c:
-	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/api-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/api-anyflow-net -n cluster --timeout=600s
 
 api-tls-d:
 	kubectl delete -f ./certificate/api-anyflow-net.yaml || true
-	kubectl delete -f ./cluster/public-gateway.yaml || true
 
 
 metric-server-c:
@@ -404,10 +397,6 @@ kagent-c: cert_manager-c authelia-c
 	kubectl rollout status deployment/kagent-grafana-mcp -n kagent --timeout=300s
 	kubectl apply -f ./apps/kagent/agentgateway-services.yaml
 	kubectl apply -f ./apps/kagent/referencegrant-agentgateway.yaml
-	kubectl apply -f ./cluster/public-gateway.yaml
-	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
-	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s
-	kubectl apply -f ./apps/kagent/httproute.yaml
 	kubectl delete authorizationpolicy public-gateway-kagent-authelia -n cluster --ignore-not-found
 	kubectl delete authorizationpolicy public-gateway-kagent-oauth2-proxy -n cluster --ignore-not-found
 	kubectl rollout status deployment/kagent-controller -n kagent --timeout=300s
@@ -416,7 +405,6 @@ kagent-c: cert_manager-c authelia-c
 kagent-d:
 	kubectl delete authorizationpolicy public-gateway-kagent-oauth2-proxy -n cluster --ignore-not-found || true
 	kubectl delete authorizationpolicy public-gateway-kagent-authelia -n cluster --ignore-not-found || true
-	kubectl delete -f ./apps/kagent/httproute.yaml || true
 	kubectl delete -f ./certificate/kagent-anyflow-net.yaml || true
 	kubectl delete -f ./apps/kagent/referencegrant-agentgateway.yaml || true
 	kubectl delete -f ./apps/kagent/agentgateway-services.yaml || true
@@ -440,25 +428,26 @@ agentgateway-c: kagent-c
 	@test -f ./apps/agentgateway/secret.oidc.yaml || (echo "missing apps/agentgateway/secret.oidc.yaml" >&2; exit 1)
 	kubectl apply -f ./apps/agentgateway/secret.openai.yaml
 	kubectl apply -f ./apps/agentgateway/secret.oidc.yaml
-	helm upgrade -i agentgateway-crds oci://cr.agentgateway.dev/charts/agentgateway-crds --create-namespace --namespace agentgateway-system --version $(AGENTGATEWAY_CHART_VERSION) --set controller.image.pullPolicy=Always
-	helm upgrade -i agentgateway oci://cr.agentgateway.dev/charts/agentgateway --namespace agentgateway-system --version $(AGENTGATEWAY_CHART_VERSION) -f ./apps/agentgateway/values.yaml --wait
+	helm upgrade -i agentgateway-crds oci://cr.agentgateway.dev/charts/agentgateway-crds --namespace cluster --version $(AGENTGATEWAY_CHART_VERSION) --take-ownership
+	helm upgrade -i agentgateway oci://cr.agentgateway.dev/charts/agentgateway --namespace cluster --version $(AGENTGATEWAY_CHART_VERSION) -f ./apps/agentgateway/values.yaml --wait
 	kubectl apply -f ./apps/agentgateway/agentgatewayparameters.auth.yaml
-	kubectl apply -f ./apps/agentgateway/gateway.proxy.yaml
-	kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Programmed")].status}'=True gateway/agentgateway-proxy -n agentgateway-system --timeout=300s
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl apply -f ./certificate/api-anyflow-net.yaml
+	kubectl apply -f ./certificate/kagent-anyflow-net.yaml
+	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/api-anyflow-net -n cluster --timeout=600s
+	kubectl wait --for=condition=Ready certificate/kagent-anyflow-net -n cluster --timeout=600s
+	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
+	kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Programmed")].status}'=True gateway/public-gateway -n cluster --timeout=300s
 	kubectl apply -f ./apps/agentgateway/agentgatewaypolicy.llm-access-log.yaml
 	kubectl apply -f ./apps/agentgateway/httproute.kagent.yaml
 	kubectl apply -f ./apps/agentgateway/httproute.external.yaml
 	kubectl apply -f ./apps/agentgateway/agentgatewaybackend.openai.yaml
-	kubectl apply -f ./cluster/public-gateway.yaml
-	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
-	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
-	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
 	kubectl apply -f ./apps/agentgateway/service.agentgateway-admin.yaml
-	kubectl apply -f ./apps/agentgateway/httproute.agentgateway-admin.yaml
 	kubectl delete authorizationpolicy public-gateway-agentgateway-authelia -n cluster --ignore-not-found
 	kubectl delete authorizationpolicy public-gateway-agentgateway-oauth2-proxy -n cluster --ignore-not-found
-	kubectl rollout status deployment/agentgateway -n agentgateway-system --timeout=300s
-	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
+	kubectl rollout status deployment/agentgateway -n cluster --timeout=300s
+	kubectl rollout status deployment/public-gateway -n cluster --timeout=300s
 	$(MAKE) stock-mcp-c
 	$(MAKE) stock-agent-c
 
@@ -467,20 +456,20 @@ agentgateway-d:
 	$(MAKE) stock-mcp-d
 	kubectl delete authorizationpolicy public-gateway-agentgateway-oauth2-proxy -n cluster --ignore-not-found || true
 	kubectl delete authorizationpolicy public-gateway-agentgateway-authelia -n cluster --ignore-not-found || true
-	kubectl delete -f ./apps/agentgateway/httproute.agentgateway-admin.yaml || true
 	kubectl delete -f ./apps/agentgateway/service.agentgateway-admin.yaml || true
 	kubectl delete -f ./certificate/agentgateway-anyflow-net.yaml || true
+	kubectl delete -f ./certificate/kagent-anyflow-net.yaml || true
+	kubectl delete -f ./certificate/api-anyflow-net.yaml || true
 	kubectl delete -f ./apps/agentgateway/agentgatewaypolicy.llm-access-log.yaml || true
 	kubectl delete -f ./apps/agentgateway/agentgatewaybackend.openai.yaml || true
 	kubectl delete -f ./apps/agentgateway/httproute.external.yaml || true
 	kubectl delete -f ./apps/agentgateway/httproute.kagent.yaml || true
+	kubectl delete -f ./cluster/public-gateway.yaml || true
 	kubectl delete -f ./apps/agentgateway/agentgatewayparameters.auth.yaml || true
-	kubectl delete -f ./apps/agentgateway/gateway.proxy.yaml || true
-	helm uninstall agentgateway -n agentgateway-system || true
-	helm uninstall agentgateway-crds -n agentgateway-system || true
+	helm uninstall agentgateway -n cluster || true
+	helm uninstall agentgateway-crds -n cluster || true
 	kubectl delete -f ./apps/agentgateway/secret.oidc.yaml || true
 	kubectl delete -f ./apps/agentgateway/secret.openai.yaml || true
-
 
 authelia-c: cert_manager-c
 	@test -f ./apps/authelia/secret.yaml || (echo "missing apps/authelia/secret.yaml" >&2; exit 1)
@@ -506,7 +495,6 @@ oauth2-proxy-d:
 
 
 anyflow-blog-c: cert_manager-c
-	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/blog-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/blog-anyflow-net -n cluster --timeout=600s
 	$(MAKE) -C apps/anyflow-blog create
