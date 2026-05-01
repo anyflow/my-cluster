@@ -33,3 +33,10 @@ metadata:
     istio.io/dataplane-mode: ambient
     istio.io/use-waypoint: waypoint-kagent
     istio.io/ingress-use-waypoint: "true"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentgateway-system
+  labels:
+    istio.io/dataplane-mode: ambient

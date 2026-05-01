@@ -12,6 +12,6 @@ spec:
   ports:
     - name: http-admin
       port: 15001
-      targetPort: 15001
+      targetPort: 15002
       protocol: TCP
       appProtocol: HTTP

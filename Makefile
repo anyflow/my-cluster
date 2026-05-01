@@ -452,7 +452,6 @@ agentgateway-c: kagent-c
 	kubectl apply -f ./cluster/public-gateway.yaml
 	kubectl apply -f ./certificate/agentgateway-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/agentgateway-anyflow-net -n cluster --timeout=600s
-	kubectl patch deployment agentgateway-proxy -n agentgateway-system --type=strategic -p '{"spec":{"template":{"spec":{"containers":[{"name":"admin-ui-proxy","image":"alpine/socat:latest","args":["TCP-LISTEN:15001,fork,reuseaddr,bind=0.0.0.0","TCP:127.0.0.1:15000"],"ports":[{"containerPort":15001,"name":"admin-ui","protocol":"TCP"}]}]}}}}'
 	kubectl rollout status deployment/agentgateway-proxy -n agentgateway-system --timeout=300s
 	kubectl apply -f ./apps/agentgateway/service.agentgateway-admin.yaml
 	kubectl apply -f ./apps/agentgateway/httproute.agentgateway-admin.yaml

@@ -4,6 +4,20 @@ metadata:
   name: agentgateway-proxy
   namespace: agentgateway-system
 spec:
+  deployment:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: admin-ui-proxy
+              image: alpine/socat:latest
+              args:
+                - TCP-LISTEN:15002,fork,reuseaddr,bind=0.0.0.0
+                - TCP:127.0.0.1:15000
+              ports:
+                - containerPort: 15002
+                  name: admin-ui
+                  protocol: TCP
   env:
     - name: OIDC_CLIENT_ID
       valueFrom:
