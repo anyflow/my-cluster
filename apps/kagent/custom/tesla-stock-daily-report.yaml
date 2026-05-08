@@ -4,6 +4,7 @@ metadata:
   name: tesla-stock-daily-report
   namespace: kagent
 spec:
+  suspend: true
   schedule: 0 8 * * *
   timeZone: Asia/Seoul
   concurrencyPolicy: Forbid

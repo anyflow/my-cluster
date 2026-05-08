@@ -4,6 +4,7 @@ metadata:
   name: samsung-stock-daily-report
   namespace: kagent
 spec:
+  suspend: true
   schedule: 5 8 * * *
   timeZone: Asia/Seoul
   concurrencyPolicy: Forbid
