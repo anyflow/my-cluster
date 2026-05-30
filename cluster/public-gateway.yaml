@@ -144,6 +144,25 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: http-stock-anyflow-net
+      hostname: stock.anyflow.net
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-stock-anyflow-net
+      hostname: stock.anyflow.net
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: stock-anyflow-net-tls
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: http-public-gateway-svc
       hostname: public-gateway.cluster.svc
       port: 80

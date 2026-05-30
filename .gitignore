@@ -24,6 +24,7 @@ scripts/remote-kubectl
 apps/dockebi
 apps/anyflow-blog
 apps/market-reporter
+apps/my-stock-app
 apps/docserver/output
 
 

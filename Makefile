@@ -558,3 +558,20 @@ stock-agent-d:
 	kubectl delete -f ./apps/kagent/custom/stock-agent.yaml || true
 
 stock-agent-r: stock-agent-d stock-agent-c
+
+my-stock-app-c: cert_manager-c authelia-c
+	kubectl rollout restart deployment/authelia -n cluster
+	kubectl rollout status deployment/authelia -n cluster --timeout=300s
+	kubectl apply -f ./apps/agentgateway/agentgatewayparameters.auth.yaml
+	kubectl apply -f ./cluster/public-gateway.yaml
+	kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Programmed")].status}'=True gateway/public-gateway -n cluster --timeout=300s
+	kubectl apply -f ./certificate/stock-anyflow-net.yaml
+	kubectl wait --for=condition=Ready certificate/stock-anyflow-net -n cluster --timeout=600s
+	$(MAKE) -C apps/my-stock-app create
+
+my-stock-app-d:
+	$(MAKE) -C apps/my-stock-app delete
+	kubectl delete -f ./certificate/stock-anyflow-net.yaml || true
+
+my-stock-app-r: my-stock-app-d my-stock-app-c
+
