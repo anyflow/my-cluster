@@ -204,17 +204,17 @@ spec:
               - email
               - profile
       - name:
-          name: stock-api-oidc
+          name: stock-browser-oidc
           namespace: cluster
         target:
           route:
             name: my-stock-app
             namespace: service
-            ruleName: stock-api
+            ruleName: stock-app
             kind: HTTPRoute
         phase: route
         policy:
-          oidc: &stock_browser_oidc
+          oidc:
             issuer: https://api.anyflow.net/auth
             authorizationEndpoint: https://api.anyflow.net/auth/api/oidc/authorization
             tokenEndpoint: http://authelia.cluster.svc.cluster.local/auth/api/oidc/token
@@ -226,18 +226,6 @@ spec:
             scopes:
               - email
               - profile
-      - name:
-          name: stock-browser-oidc
-          namespace: cluster
-        target:
-          route:
-            name: my-stock-app
-            namespace: service
-            ruleName: stock-frontend
-            kind: HTTPRoute
-        phase: route
-        policy:
-          oidc: *stock_browser_oidc
       - name:
           name: kiali-browser-oidc
           namespace: cluster
