@@ -130,8 +130,8 @@
 - 앱 경로: `apps/anyflow-blog` (nested git repository)
 - 이 앱/디렉터리를 수정할 때는 루트 `AGENTS.md`를 읽은 뒤 `apps/anyflow-blog/AGENTS.md`도 반드시 읽을 것.
 - 현재 `service` 네임스페이스에 `anyflow-blog` `Deployment/Service`가 올라와 있다.
-- 외부 노출은 `apps/anyflow-blog/deployment/httproute.yaml` 기준이다. HTTP host는 `blog.anyflow.net`·`www.anyflow.net`·`anyflow.net`이며 HTTPS는 인증서가 있는 `blog.anyflow.net`이다. 두 추가 도메인의 DNS·기존 호스팅은 유지하며 HTTPS 인증서·리스너는 별도 전환 작업이다.
-- `cluster` 네임스페이스의 `blog-anyflow-net` certificate는 현재 `Ready=True`다.
+- 외부 노출은 `apps/anyflow-blog/deployment/httproute.yaml` 기준이다. HTTP host는 `blog.anyflow.net`·`www.anyflow.net`·`anyflow.net`이며 HTTPS도 동일한 세 host를 지원한다. DNS는 사용자가 관리하며 2026-10-15 anyflow.net·www.anyflow.net을 홈 서버로 연결했다.
+- `cluster` 네임스페이스의 `blog-anyflow-net`·`anyflow-net`·`www-anyflow-net` certificate를 cert-manager의 HTTP-01 방식으로 관리한다.
 - 루트 `Makefile` 기준 진입점은 `anyflow-blog-c`, `anyflow-blog-d`, `anyflow-blog-r`다.
 
 ## kagent / agentgateway 운영 기준

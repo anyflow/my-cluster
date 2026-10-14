@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: anyflow-net
+  namespace: cluster
+spec:
+  dnsNames:
+    - anyflow.net
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-production-http01
+  secretName: anyflow-net-tls

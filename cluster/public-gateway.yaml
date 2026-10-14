@@ -151,10 +151,34 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: https-www-anyflow-net
+      hostname: www.anyflow.net
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: www-anyflow-net-tls
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: http-anyflow-net
       hostname: anyflow.net
       port: 80
       protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-anyflow-net
+      hostname: anyflow.net
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: anyflow-net-tls
       allowedRoutes:
         namespaces:
           from: All

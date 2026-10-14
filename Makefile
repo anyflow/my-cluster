@@ -496,11 +496,17 @@ oauth2-proxy-d:
 
 anyflow-blog-c: cert_manager-c
 	kubectl apply -f ./certificate/blog-anyflow-net.yaml
+	kubectl apply -f ./certificate/anyflow-net.yaml
+	kubectl apply -f ./certificate/www-anyflow-net.yaml
 	kubectl wait --for=condition=Ready certificate/blog-anyflow-net -n cluster --timeout=600s
+	kubectl wait --for=condition=Ready certificate/anyflow-net -n cluster --timeout=600s
+	kubectl wait --for=condition=Ready certificate/www-anyflow-net -n cluster --timeout=600s
 	$(MAKE) -C apps/anyflow-blog create
 anyflow-blog-d:
 	$(MAKE) -C apps/anyflow-blog delete
 	kubectl delete -f ./certificate/blog-anyflow-net.yaml || true
+	kubectl delete -f ./certificate/anyflow-net.yaml || true
+	kubectl delete -f ./certificate/www-anyflow-net.yaml || true
 anyflow-blog-r: anyflow-blog-d anyflow-blog-c
 
 
