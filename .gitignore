@@ -34,3 +34,6 @@ apps/authelia/secret.yaml
 apps/agentgateway/secret.openai.yaml
 apps/agentgateway/secret.oidc.yaml
 apps/kagent/secret.grafana-mcp.yaml
+
+# local caches and migration backups
+/.cache/
